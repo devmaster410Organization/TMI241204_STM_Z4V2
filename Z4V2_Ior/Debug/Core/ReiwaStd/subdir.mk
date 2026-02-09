@@ -5,29 +5,32 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
-../USB_Device/App/usb_device.c \
-../USB_Device/App/usbd_cdc_if.c \
-../USB_Device/App/usbd_desc.c 
+../Core/ReiwaStd/crc16.c \
+../Core/ReiwaStd/firo.c \
+../Core/ReiwaStd/strcnv.c \
+../Core/ReiwaStd/uart_drv.c 
 
 OBJS += \
-./USB_Device/App/usb_device.o \
-./USB_Device/App/usbd_cdc_if.o \
-./USB_Device/App/usbd_desc.o 
+./Core/ReiwaStd/crc16.o \
+./Core/ReiwaStd/firo.o \
+./Core/ReiwaStd/strcnv.o \
+./Core/ReiwaStd/uart_drv.o 
 
 C_DEPS += \
-./USB_Device/App/usb_device.d \
-./USB_Device/App/usbd_cdc_if.d \
-./USB_Device/App/usbd_desc.d 
+./Core/ReiwaStd/crc16.d \
+./Core/ReiwaStd/firo.d \
+./Core/ReiwaStd/strcnv.d \
+./Core/ReiwaStd/uart_drv.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
-USB_Device/App/%.o USB_Device/App/%.su USB_Device/App/%.cyclo: ../USB_Device/App/%.c USB_Device/App/subdir.mk
+Core/ReiwaStd/%.o Core/ReiwaStd/%.su Core/ReiwaStd/%.cyclo: ../Core/ReiwaStd/%.c Core/ReiwaStd/subdir.mk
 	arm-none-eabi-gcc "$<" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32G431xx -c -I../Core/Inc -I../Core/ReiwaStd -I../Drivers/STM32G4xx_HAL_Driver/Inc -I../Drivers/STM32G4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32G4xx/Include -I../Drivers/CMSIS/Include -I../USB_Device/App -I../USB_Device/Target -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "$@"
 
-clean: clean-USB_Device-2f-App
+clean: clean-Core-2f-ReiwaStd
 
-clean-USB_Device-2f-App:
-	-$(RM) ./USB_Device/App/usb_device.cyclo ./USB_Device/App/usb_device.d ./USB_Device/App/usb_device.o ./USB_Device/App/usb_device.su ./USB_Device/App/usbd_cdc_if.cyclo ./USB_Device/App/usbd_cdc_if.d ./USB_Device/App/usbd_cdc_if.o ./USB_Device/App/usbd_cdc_if.su ./USB_Device/App/usbd_desc.cyclo ./USB_Device/App/usbd_desc.d ./USB_Device/App/usbd_desc.o ./USB_Device/App/usbd_desc.su
+clean-Core-2f-ReiwaStd:
+	-$(RM) ./Core/ReiwaStd/crc16.cyclo ./Core/ReiwaStd/crc16.d ./Core/ReiwaStd/crc16.o ./Core/ReiwaStd/crc16.su ./Core/ReiwaStd/firo.cyclo ./Core/ReiwaStd/firo.d ./Core/ReiwaStd/firo.o ./Core/ReiwaStd/firo.su ./Core/ReiwaStd/strcnv.cyclo ./Core/ReiwaStd/strcnv.d ./Core/ReiwaStd/strcnv.o ./Core/ReiwaStd/strcnv.su ./Core/ReiwaStd/uart_drv.cyclo ./Core/ReiwaStd/uart_drv.d ./Core/ReiwaStd/uart_drv.o ./Core/ReiwaStd/uart_drv.su
 
-.PHONY: clean-USB_Device-2f-App
+.PHONY: clean-Core-2f-ReiwaStd
 

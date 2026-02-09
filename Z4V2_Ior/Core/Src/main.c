@@ -23,12 +23,13 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "prj.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
+typedef StaticSemaphore_t osStaticSemaphoreDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -46,6 +47,7 @@ typedef StaticQueue_t osStaticMessageQDef_t;
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
+DMA_HandleTypeDef hdma_adc1;
 DMA_HandleTypeDef hdma_adc2;
 
 I2C_HandleTypeDef hi2c2;
@@ -58,6 +60,18 @@ TIM_HandleTypeDef htim8;
 
 UART_HandleTypeDef huart2;
 
+/* Definitions for tsk_USB */
+osThreadId_t tsk_USBHandle;
+uint32_t tsk_USBBuffer[ 128 ];
+osStaticThreadDef_t tsk_USBControlBlock;
+const osThreadAttr_t tsk_USB_attributes = {
+  .name = "tsk_USB",
+  .stack_mem = &tsk_USBBuffer[0],
+  .stack_size = sizeof(tsk_USBBuffer),
+  .cb_mem = &tsk_USBControlBlock,
+  .cb_size = sizeof(tsk_USBControlBlock),
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* Definitions for tsk_UI */
 osThreadId_t tsk_UIHandle;
 uint32_t tsk_UIBuffer[ 128 ];
@@ -69,18 +83,6 @@ const osThreadAttr_t tsk_UI_attributes = {
   .cb_mem = &tsk_UIControlBlock,
   .cb_size = sizeof(tsk_UIControlBlock),
   .priority = (osPriority_t) osPriorityLow,
-};
-/* Definitions for tsk_USB */
-osThreadId_t tsk_USBHandle;
-uint32_t tsk_USBBuffer[ 128 ];
-osStaticThreadDef_t tsk_USBControlBlock;
-const osThreadAttr_t tsk_USB_attributes = {
-  .name = "tsk_USB",
-  .stack_mem = &tsk_USBBuffer[0],
-  .stack_size = sizeof(tsk_USBBuffer),
-  .cb_mem = &tsk_USBControlBlock,
-  .cb_size = sizeof(tsk_USBControlBlock),
-  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for tsk_MODBUS */
 osThreadId_t tsk_MODBUSHandle;
@@ -96,7 +98,7 @@ const osThreadAttr_t tsk_MODBUS_attributes = {
 };
 /* Definitions for tsk_Calc */
 osThreadId_t tsk_CalcHandle;
-uint32_t tsk_CalcBuffer[ 128 ];
+uint32_t tsk_CalcBuffer[ 256 ];
 osStaticThreadDef_t tsk_CalcControlBlock;
 const osThreadAttr_t tsk_Calc_attributes = {
   .name = "tsk_Calc",
@@ -127,6 +129,14 @@ const osMessageQueueAttr_t queue_USB_attributes = {
   .cb_size = sizeof(queue_USBControlBlock),
   .mq_mem = &queue_USBBuffer,
   .mq_size = sizeof(queue_USBBuffer)
+};
+/* Definitions for sem01 */
+osSemaphoreId_t sem01Handle;
+osStaticSemaphoreDef_t sem01ControlBlock;
+const osSemaphoreAttr_t sem01_attributes = {
+  .name = "sem01",
+  .cb_mem = &sem01ControlBlock,
+  .cb_size = sizeof(sem01ControlBlock),
 };
 /* USER CODE BEGIN PV */
 
@@ -209,6 +219,10 @@ int main(void)
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
+  /* Create the semaphores(s) */
+  /* creation of sem01 */
+  sem01Handle = osSemaphoreNew(1, 1, &sem01_attributes);
+
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
   /* USER CODE END RTOS_SEMAPHORES */
@@ -229,11 +243,11 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of tsk_UI */
-  tsk_UIHandle = osThreadNew(StartDefaultTask, NULL, &tsk_UI_attributes);
-
   /* creation of tsk_USB */
-  tsk_USBHandle = osThreadNew(StartTask02, NULL, &tsk_USB_attributes);
+  tsk_USBHandle = osThreadNew(StartDefaultTask, NULL, &tsk_USB_attributes);
+
+  /* creation of tsk_UI */
+  tsk_UIHandle = osThreadNew(StartTask02, NULL, &tsk_UI_attributes);
 
   /* creation of tsk_MODBUS */
   tsk_MODBUSHandle = osThreadNew(StartTask03, NULL, &tsk_MODBUS_attributes);
@@ -346,7 +360,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.DiscontinuousConvMode = DISABLE;
   hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T7_TRGO;
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   hadc1.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -377,6 +391,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
+  sConfig.Channel = ADC_CHANNEL_VBAT;
   sConfig.Rank = ADC_REGULAR_RANK_2;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -385,6 +400,7 @@ static void MX_ADC1_Init(void)
 
   /** Configure Regular Channel
   */
+  sConfig.Channel = ADC_CHANNEL_VREFINT;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
@@ -430,7 +446,7 @@ static void MX_ADC2_Init(void)
   hadc2.Init.ExternalTrigConv = ADC_EXTERNALTRIG_T8_TRGO;
   hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc2.Init.DMAContinuousRequests = ENABLE;
-  hadc2.Init.Overrun = ADC_OVR_DATA_PRESERVED;
+  hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
   hadc2.Init.OversamplingMode = DISABLE;
   if (HAL_ADC_Init(&hadc2) != HAL_OK)
   {
@@ -742,7 +758,7 @@ static void MX_TIM7_Init(void)
 
   /* USER CODE END TIM7_Init 1 */
   htim7.Instance = TIM7;
-  htim7.Init.Prescaler = 1700-1;
+  htim7.Init.Prescaler = 14400-1;
   htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim7.Init.Period = 9999;
   htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -796,7 +812,7 @@ static void MX_TIM8_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim8, &sMasterConfig) != HAL_OK)
@@ -871,6 +887,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+  /* DMA1_Channel2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
 
 }
 
@@ -1003,6 +1022,7 @@ void StartTask03(void *argument)
 void StartTask04(void *argument)
 {
   /* USER CODE BEGIN StartTask04 */
+  tsk_calc();
   /* Infinite loop */
   for(;;)
   {
