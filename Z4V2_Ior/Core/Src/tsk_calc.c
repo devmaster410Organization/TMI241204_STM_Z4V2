@@ -8,18 +8,18 @@
 
 #include "prj.h"
 
-
-
 #define FS_HZ          3600 // Sampling frequency is 1800hz
 #define FRAME_SAMPLES  1   // 
 
+
+#define ADC1_CH_NUM 3 // vref, temp, vbat
+#define ADC2_CH_NUM 6 // ADCIN1,2,3,4,5,6
+
 typedef struct{
   uint16_t en;
-  uint16_t buf[FRAME_SAMPLES*(3+2)]; 
+  uint16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)]; 
 } st_sample_buf;
 
-#define ADC1_CH_NUM 3
-#define ADC2_CH_NUM 6
 
 #define SAMPLE_INDEX_MAX 12 // uint8_t の変数に入れるので最大255
 typedef struct {
@@ -30,10 +30,6 @@ typedef struct {
 
   HAL_StatusTypeDef hal_status_adc[4];
   osStatus osMessagePutStat;
-
-  uint8_t sadc_bit;// ADC1 0x01, SDADC1 0x02, SDADC2 0x04, SDADC3 0x08
-
-  uint16_t adc1_idx;
 
   float current_vdda ;
   float current_temp ;
@@ -51,6 +47,8 @@ typedef struct {
 
   st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
   uint8_t st_sample_buf_index;
+  Leak1Hz leak1hz_t[ADC2_CH_NUM];
+  float out_ma[ADC2_CH_NUM];
 
 } st_sampling_cb;
 
@@ -90,40 +88,67 @@ void tsk_calc( void )
     sampling_t.hal_status_adc[3] = HAL_OK;
     sampling_t.osMessagePutStat = osOK;
 
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
+    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
     for(;;){
 //      Process_ADC_Values( sampling_t.adc1_buf[4], sampling_t.adc1_buf[5] );
       sampling_t.osMessageGetCount++;
-       osEvent event;
-//      osEvent event = osMessageGet(queue_ADCHandle, 1000); 
-      PORT_HI(TP_PG10);
-for(;;) osDelay(1000);
-      switch( event.status ){
-      case osEventMessage:
-        idx = event.value.v;
+
+      uint8_t msg_prio;
+      uint8_t msg;
+      osStatus_t status = osMessageQueueGet(queue_ADCHandle,&msg,&msg_prio,1000); 
+      PORT_HI(TP_PA15);
+
+      switch( status ){
+      case osOK:
+        idx = msg;
         idxx = idxx;
         st_sample_buf *pbuf = &sampling_t.sample_buf_t[idx];
 
         if( idx < SAMPLE_INDEX_MAX ){
-          calc_adc( QSEL_IN0_CHANNEL, pbuf->buf[QSEL_IN0_CHANNEL] );
-          calc_adc( QSEL_IN1_CHANNEL, pbuf->buf[QSEL_IN1_CHANNEL] );
-          calc_adc( QSEL_IN2_CHANNEL, pbuf->buf[QSEL_IN2_CHANNEL] );
-          calc_adc( QSEL_IN4_CHANNEL, pbuf->buf[QSEL_IN4_CHANNEL] );
-          calc_adc( QSEL_IN5_CHANNEL, pbuf->buf[QSEL_IN5_CHANNEL] );
-//          calc_adc( QSEL_TEMP_CHANNEL, pbuf->buf[QSEL_TEMP_CHANNEL] );
-//          calc_adc( QSEL_VREF_CHANNEL, pbuf->buf[QSEL_VREF_CHANNEL] );
-//          calc_adc( QSEL_VBAT_CHANNEL, pbuf->buf[QSEL_VBAT_CHANNEL] );
-          pbuf->en = 0;
+          int rslt;
+          float f;
+          rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
+          }
+          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], &pbuf->buf[QSEL_IN10_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN10_CHANNEL] = f;
+          }
+
+           rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
+          }
+          rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
+          }
+          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
+          }
+          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], &pbuf->buf[QSEL_IN17_CHANNEL], 1,&f);
+          if(rslt == 1){
+            sampling_t.out_ma[QSEL_IN17_CHANNEL] = f;
+          }
+            pbuf->en = 0;
         }else{
           //
         }
         break;
-      case osEventTimeout:
+      case osErrorTimeout:
         sampling_t.osMessageGetTimeoutCount++;
         break;
       default:
         break;
       }
-      PORT_LO(TP_PG10);
+      PORT_LO(TP_PA15);
     }
 }
 
@@ -138,28 +163,28 @@ static void init_sample_buf( void )
 static void calc_adc( uint16_t sel,uint16_t adc_value )
 {
   switch( sel ){
-    case QSEL_IN0_CHANNEL:  // ADCIN0
+    case QSEL_IN1_CHANNEL:  // ADCIN0
         for(int i =0;i<1;i++){
             PORT_HI(TP_PA15); PORT_LO(TP_PA15);
         } 
 
       break;      
-    case QSEL_IN1_CHANNEL:  // ADCIN1
+    case QSEL_IN3_CHANNEL:  // ADCIN1
         for(int i =0;i<2;i++){
             PORT_HI(TP_PA15); PORT_LO(TP_PA15);
         } 
       break;
-    case QSEL_IN2_CHANNEL: // ADCIN2
+    case QSEL_IN4_CHANNEL: // ADCIN2
         for(int i =0;i<2;i++){
             PORT_HI(TP_PA15); PORT_LO(TP_PA15);
         } 
       break;
-    case QSEL_IN4_CHANNEL:  //SDADC1 IN4
+    case QSEL_IN10_CHANNEL:  //SDADC1 IN4
         for(int i =0;i<4;i++){
             PORT_HI(TP_PA15); PORT_LO(TP_PA15);
         } 
       break;      
-    case QSEL_IN5_CHANNEL:  //SDADC1 IN5
+    case QSEL_IN13_CHANNEL:  //SDADC1 IN5
         for(int i =0;i<5;i++){
             PORT_HI(TP_PA15); PORT_LO(TP_PA15);
         } 
@@ -231,13 +256,11 @@ static void Start_ADC_DMA(void)
   /* --- ADC1 calibration（起動時1回） --- */
   if (HAL_ADCEx_Calibration_Start(&hadc1,ADC_SINGLE_ENDED) != HAL_OK) Error_Handler();
   if (HAL_ADCEx_Calibration_Start(&hadc2,ADC_SINGLE_ENDED) != HAL_OK) Error_Handler();
-  sampling_t.adc1_idx = 0;
   /* --- Start DMA (trigger-wait) --- */
   if ((sampling_t.hal_status_adc[0]=HAL_ADC_Start_DMA(&hadc1,(uint32_t*)sampling_t.adc1_buf, FRAME_SAMPLES * ADC1_CH_NUM)) != HAL_OK) Error_Handler();
   if ((sampling_t.hal_status_adc[1]=HAL_ADC_Start_DMA(&hadc2, (uint32_t*)sampling_t.adc2_buf, FRAME_SAMPLES * ADC2_CH_NUM)) != HAL_OK) Error_Handler();
  
   /* --- Start TIM4 (generate CC1 + CC4 at same moment) --- */
-  // TIM4 1800SPS
   if (HAL_TIM_Base_Start_IT(&htim7) != HAL_OK) Error_Handler();//ADC1 Trigger 1Sec
   if (HAL_TIM_Base_Start_IT(&htim8) != HAL_OK) Error_Handler();//ADC2 Trigger 3600SPS
 
@@ -326,7 +349,15 @@ void put_adc_all_queue( void )
         pbuf->buf[3] = sampling_t.adc2_buf[j++];
         pbuf->buf[4] = sampling_t.adc2_buf[j++];
         pbuf->buf[5] = sampling_t.adc2_buf[j++];
-
+        sampling_t.osMessagePutStat = osMessageQueuePut(queue_ADCHandle, &sampling_t.st_sample_buf_index, 0,0);
+        sampling_t.osMessagePutCount++;
+        if( sampling_t.osMessagePutStat != osOK ){
+          sampling_t.osMessagePutErrorCount++;
+        }
+        sampling_t.st_sample_buf_index++;
+        if( sampling_t.st_sample_buf_index >= SAMPLE_INDEX_MAX ){
+          sampling_t.st_sample_buf_index = 0;
+        }
       }
     }
   }
@@ -339,14 +370,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if( hadc->Instance == ADC2 )
   {
+PORT_TGL(TP_PA9);
     sampling_t.adc2_callback_count++;
 
     put_adc_all_queue( );
     PORT_LO(LD2);
-    sampling_t.sadc_bit = 0;
   }else if (hadc->Instance == ADC1)
   {
-    uint16_t adcval;
+PORT_TGL(LD2);
     put_ad_ring(QSEL_TEMP_CHANNEL, sampling_t.adc1_buf[0]);
     put_ad_ring(QSEL_VREF_CHANNEL, sampling_t.adc1_buf[1]);
     put_ad_ring(QSEL_VBAT_CHANNEL, sampling_t.adc1_buf[2]);
