@@ -52,26 +52,26 @@ static inline float leak_goertzel_power_50(const Leak1Hz *st)
  */
 void Leak1Hz_Init(Leak1Hz *st, uint32_t fs_hz, float K_mA, float alpha, float deadband_mA, float hpf_a)
 {
-  st->fs_hz = fs_hz;
-  st->nwin  = fs_hz;         // 1秒窓
-  st->alpha = alpha;
-  st->deadband_mA = deadband_mA;
-  st->K_mA  = K_mA;
+    st->fs_hz = fs_hz;
+    st->nwin  = fs_hz;         // 1秒窓
+    st->alpha = alpha;
+    st->deadband_mA = deadband_mA;
+    st->K_mA  = K_mA;
 
-  st->hpf_a = hpf_a;
-  st->x_prev = 0.0f;
-  st->y_prev = 0.0f;
+    st->hpf_a = hpf_a;
+    st->x_prev = 0.0f;
+    st->y_prev = 0.0f;
 
-  st->coeff50 = 2.0f * cosf(2.0f * (float)M_PI * 50.0f / (float)fs_hz);
-  leak_reset_goertzel(st);
+    st->coeff50 = 2.0f * cosf(2.0f * (float)M_PI * 50.0f / (float)fs_hz);
+    leak_reset_goertzel(st);
 
-  st->sample_count = 0;
+    st->sample_count = 0;
 
-  st->offset_mA = 0.0f;
-  st->offset_valid = 0;
+    st->offset_mA = 0.0f;
+    st->offset_valid = 0;
 
-  st->filt_mA = 0.0f;
-  st->last_mA = 0.0f;
+    st->filt_mA = 0.0f;
+    st->last_mA = 0.0f;
 }
 
 /**

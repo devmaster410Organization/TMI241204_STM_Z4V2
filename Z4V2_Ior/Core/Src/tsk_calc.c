@@ -8,7 +8,7 @@
 
 #include "prj.h"
 
-#define FS_HZ          3600 // Sampling frequency is 1800hz
+#define FS_HZ          1800 // Sampling frequency is 1800hz
 #define FRAME_SAMPLES  1   // 
 
 
@@ -77,81 +77,90 @@ static void calc_adc( uint16_t adsel,uint16_t adc_value );
 volatile uint8_t idxx;
 void tsk_calc( void )
 {
-  uint8_t idx;
-  init_sample_buf();
-  Start_ADC_DMA();
-    Start_Capture_Synced();
+	uint8_t idx;
+	init_sample_buf();
+	Start_ADC_DMA();
+	Start_Capture_Synced();
     
-    sampling_t.hal_status_adc[0] = HAL_OK;
+	sampling_t.hal_status_adc[0] = HAL_OK;
     sampling_t.hal_status_adc[1] = HAL_OK;
     sampling_t.hal_status_adc[2] = HAL_OK;
     sampling_t.hal_status_adc[3] = HAL_OK;
     sampling_t.osMessagePutStat = osOK;
 
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
-    Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,3.53e-3, 0.30f, 0.10f, 0.995f );
-    for(;;){
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
+#if 0	
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.263953774e-3,0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.263953774e-3, 0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
+#endif
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.057e-3 ,0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.057e-3,0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.057e-3, 0.30f, 0.10f, 0.995f );
+	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.057e-3 ,0.30f, 0.10f, 0.995f );
+
+	for(;;){
 //      Process_ADC_Values( sampling_t.adc1_buf[4], sampling_t.adc1_buf[5] );
-      sampling_t.osMessageGetCount++;
+		sampling_t.osMessageGetCount++;
 
-      uint8_t msg_prio;
-      uint8_t msg;
-      osStatus_t status = osMessageQueueGet(queue_ADCHandle,&msg,&msg_prio,1000); 
-      PORT_HI(TP_PA15);
+		uint8_t msg_prio;
+		uint8_t msg;
+		osStatus_t status = osMessageQueueGet(queue_ADCHandle,&msg,&msg_prio,1000); 
+		PORT_HI(TP_PA15);
 
-      switch( status ){
-      case osOK:
-        idx = msg;
-        idxx = idxx;
-        st_sample_buf *pbuf = &sampling_t.sample_buf_t[idx];
+		switch( status ){
+		case osOK:
+			idx = msg;
+			idxx = idxx;
+			st_sample_buf *pbuf = &sampling_t.sample_buf_t[idx];
+			if( idx < SAMPLE_INDEX_MAX ){
+				int rslt;
+				float f;
+				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
+				}
+				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], &pbuf->buf[QSEL_IN10_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN10_CHANNEL] = f;
+				}
 
-        if( idx < SAMPLE_INDEX_MAX ){
-          int rslt;
-          float f;
-          rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
-          }
-          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], &pbuf->buf[QSEL_IN10_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN10_CHANNEL] = f;
-          }
-
-           rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
-          }
-          rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
-          }
-          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
-          }
-          Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], &pbuf->buf[QSEL_IN17_CHANNEL], 1,&f);
-          if(rslt == 1){
-            sampling_t.out_ma[QSEL_IN17_CHANNEL] = f;
-          }
-            pbuf->en = 0;
-        }else{
-          //
-        }
-        break;
-      case osErrorTimeout:
-        sampling_t.osMessageGetTimeoutCount++;
-        break;
-      default:
-        break;
-      }
-      PORT_LO(TP_PA15);
+				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
+				}
+				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
+				}
+				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
+				}
+				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], &pbuf->buf[QSEL_IN17_CHANNEL], 1,&f);
+				if(rslt == 1){
+				sampling_t.out_ma[QSEL_IN17_CHANNEL] = f;
+				}
+				pbuf->en = 0;
+			}else{
+				//
+			}
+			break;
+		case osErrorTimeout:
+			sampling_t.osMessageGetTimeoutCount++;
+        	break;
+		default:
+        	break;
+		}
+		PORT_LO(TP_PA15);
     }
 }
 
+
+/// @brief 
+/// @param  
 static void init_sample_buf( void )
 {
   memset( &sampling_t.sample_buf_t, 0, sizeof(sampling_t.sample_buf_t) );
@@ -199,19 +208,19 @@ static void calc_adc( uint16_t sel,uint16_t adc_value )
 
 static void Start_Capture_Synced(void)
 {
-  // --- Slave側 Input Capture 開始（割り込み or DMA）---
-  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_3);
-  // 必要なら CH3/CH4 も
+	// --- Slave側 Input Capture 開始（割り込み or DMA）---
+	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_3);
+	// 必要なら CH3/CH4 も
 
-  // --- Master側 Input Capture も使うなら先に開始してOK ---
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
-  HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
+	// --- Master側 Input Capture も使うなら先に開始してOK ---
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
+	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
 
-  // --- カウンタ開始順：Slave → Master ---
-  HAL_TIM_Base_Start(&htim1);  // Slave counter running (resetを待つ)
-  HAL_TIM_Base_Start(&htim3);  // Master starts -> Update(TRGO)でSlaveがCNT=0に
+	// --- カウンタ開始順：Slave → Master ---
+	HAL_TIM_Base_Start(&htim1);  // Slave counter running (resetを待つ)
+	HAL_TIM_Base_Start(&htim3);  // Master starts -> Update(TRGO)でSlaveがCNT=0に
 }
  
 
