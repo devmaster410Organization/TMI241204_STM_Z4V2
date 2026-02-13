@@ -58,6 +58,8 @@ void ADC1_2_IRQHandler(void);
 void USB_HP_IRQHandler(void);
 void USB_LP_IRQHandler(void);
 void TIM1_TRG_COM_TIM17_IRQHandler(void);
+void TIM1_CC_IRQHandler(void);
+void TIM3_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
