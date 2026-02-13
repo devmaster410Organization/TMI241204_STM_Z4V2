@@ -17,7 +17,7 @@
 
 typedef struct{
   uint16_t en;
-  uint16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)]; 
+  int16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)];
 } st_sample_buf;
 
 
@@ -26,7 +26,7 @@ typedef struct {
   /* ADC1: IN0..IN3 (4ch scan) */
   uint16_t adc1_buf[FRAME_SAMPLES * ADC1_CH_NUM ];
 
-  uint16_t adc2_buf[FRAME_SAMPLES * ADC2_CH_NUM ];
+  int16_t adc2_buf[FRAME_SAMPLES * ADC2_CH_NUM ];
 
   HAL_StatusTypeDef hal_status_adc[4];
   osStatus osMessagePutStat;
@@ -47,7 +47,7 @@ typedef struct {
 
   st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
   uint8_t st_sample_buf_index;
-  Leak1Hz leak1hz_t[ADC2_CH_NUM];
+  Leak1Hz_5060 leak1hz_t[ADC2_CH_NUM];
   float out_ma[ADC2_CH_NUM];
 
 } st_sampling_cb;
@@ -88,19 +88,19 @@ void tsk_calc( void )
     sampling_t.hal_status_adc[3] = HAL_OK;
     sampling_t.osMessagePutStat = osOK;
 
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f, 1.30f );
 #if 0	
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.263953774e-3,0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.263953774e-3, 0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
 #endif
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.057e-3 ,0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.057e-3,0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.057e-3, 0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.057e-3 ,0.30f, 0.10f, 0.995f );
-
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,0.000539069995 ,0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,0.000539069995,0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,0.000539069995, 0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,0.000539069995,0.30f, 0.10f, 0.995f, 1.30f );
+	
 	for(;;){
 //      Process_ADC_Values( sampling_t.adc1_buf[4], sampling_t.adc1_buf[5] );
 		sampling_t.osMessageGetCount++;
@@ -118,30 +118,30 @@ void tsk_calc( void )
 			if( idx < SAMPLE_INDEX_MAX ){
 				int rslt;
 				float f;
-				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
 				if(rslt == 1){
 				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
 				}
-				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], &pbuf->buf[QSEL_IN10_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN10_CHANNEL], &pbuf->buf[QSEL_IN10_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN10_CHANNEL] = f;
+					sampling_t.out_ma[QSEL_IN10_CHANNEL] = f;
 				}
 
-				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
+					sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
 				}
-				rslt = Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
+					sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
 				}
-				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
+					sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
 				}
-				Leak1Hz_PushSamples( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], &pbuf->buf[QSEL_IN17_CHANNEL], 1,&f);
+				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], &pbuf->buf[QSEL_IN17_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN17_CHANNEL] = f;
+					sampling_t.out_ma[QSEL_IN17_CHANNEL] = f;
 				}
 				pbuf->en = 0;
 			}else{
