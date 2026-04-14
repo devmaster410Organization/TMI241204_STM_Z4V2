@@ -1,5 +1,6 @@
 "./Core/ReiwaStd/crc16.o"
 "./Core/ReiwaStd/firo.o"
+"./Core/ReiwaStd/key.o"
 "./Core/ReiwaStd/strcnv.o"
 "./Core/ReiwaStd/uart_drv.o"
 "./Core/Src/app_freertos.o"

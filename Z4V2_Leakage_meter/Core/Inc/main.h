@@ -109,6 +109,8 @@ void Error_Handler(void);
 #define LPH2_GPIO_Port GPIOB
 #define LPH3_Pin GPIO_PIN_7
 #define LPH3_GPIO_Port GPIOB
+#define TP8_Pin GPIO_PIN_8
+#define TP8_GPIO_Port GPIOB
 #define LPH4_Pin GPIO_PIN_9
 #define LPH4_GPIO_Port GPIOB
 

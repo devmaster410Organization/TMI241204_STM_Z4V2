@@ -1,0 +1,16 @@
+../Core/Src/tsk_calc.c:79:6:tsk_calc	10
+../Core/Src/tsk_calc.c:165:13:init_sample_buf	1
+../Core/Src/tsk_calc.c:173:13:calc_adc	11
+../Core/Src/tsk_calc.c:210:13:Start_Capture_Synced	1
+../Core/Src/tsk_calc.c:234:6:HAL_TIM_IC_CaptureCallback	9
+../Core/Src/tsk_calc.c:268:13:Start_ADC_DMA	7
+../Core/Src/tsk_calc.c:304:6:put_ad_ring	6
+../Core/Src/tsk_calc.c:327:10:get_ad_ring	6
+../Core/Src/tsk_calc.c:354:6:put_adc_all_queue	6
+../Core/Src/tsk_calc.c:387:6:HAL_ADC_ConvCpltCallback	3
+../Core/Src/tsk_calc.c:407:6:HAL_ADC_ErrorCallback	3
+../Core/Src/tsk_calc.c:426:6:adc_start	1
+../Core/Src/tsk_calc.c:445:7:Calculate_Vbat	1
+../Core/Src/tsk_calc.c:457:7:Calculate_Vdda	2
+../Core/Src/tsk_calc.c:465:7:Calculate_Temperature	3
+../Core/Src/tsk_calc.c:476:6:Process_ADC_Values	1

@@ -43,14 +43,15 @@ _Min_Stack_Size = 0x400; /* required amount of stack */
 
 /* Memories definition */
 /* Memories definition */
+/* Memories definition */
+/* 128K - 4K(DataFlash用) = 124K */
+/* 末尾の2ページ(各2KB)を定義 */
 MEMORY
 {
-  RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 32K
-  /* 128K - 4K(DataFlash用) = 124K */
-  FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 124K
-  /* 末尾の2ページ(各2KB)を定義 */
-  DATA_FLASH0 (r)  : ORIGIN = 0x801F000,   LENGTH = 2K
-  DATA_FLASH1 (r)  : ORIGIN = 0x801F800,   LENGTH = 2K
+  RAM         (xrw) : ORIGIN = 0x20000000,   LENGTH = 32K
+  FLASH       (rx)  : ORIGIN = 0x08000000,   LENGTH = 124K
+  DATA_FLASH0 (r)   : ORIGIN = 0x0801F000,   LENGTH = 2K
+  DATA_FLASH1 (r)   : ORIGIN = 0x0801F800,   LENGTH = 2K
 }
 
 /* Sections */
@@ -189,6 +190,7 @@ SECTIONS
   }
   
   /* Data Flash sections */
+  /* Data Flash sections */
   .setup0 (NOLOAD) :
   {
     . = ALIGN(4);
@@ -203,7 +205,6 @@ SECTIONS
     . = ALIGN(4);
   } >DATA_FLASH1
 
-  .ARM.attributes 0 : { *(.ARM.attributes) }
-
+  /* 重複していた行を1つ削除 */
   .ARM.attributes 0 : { *(.ARM.attributes) }
 }
