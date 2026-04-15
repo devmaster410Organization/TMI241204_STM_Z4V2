@@ -13,4 +13,4 @@
 ../Core/Src/tsk_calc.c:445:7:Calculate_Vbat	1
 ../Core/Src/tsk_calc.c:457:7:Calculate_Vdda	2
 ../Core/Src/tsk_calc.c:465:7:Calculate_Temperature	3
-../Core/Src/tsk_calc.c:476:6:Process_ADC_Values	1
+../Core/Src/tsk_calc.c:480:6:Process_ADC_Values	1

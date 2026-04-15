@@ -472,6 +472,10 @@ float Calculate_Temperature(uint32_t ts_adc_raw, float vdda) {
   return (float)__LL_ADC_CALC_TEMPERATURE(vdda_mv, ts_adc_raw, LL_ADC_RESOLUTION_12B);
 }
 
+
+float sysvdda,systemp,sysvbat;
+
+
 /* --- メイン処理での使用イメージ --- */
 void Process_ADC_Values( void ) {
     // 1. まず現在の電源電圧(VDDA)を求める
@@ -483,5 +487,9 @@ void Process_ADC_Values( void ) {
 
     // 3. VBAT電圧を求める
     sampling_t.current_vbat = Calculate_Vbat(get_ad_ring(QSEL_VBAT_CHANNEL), sampling_t.current_vdda);
-}
+  sysvdda = sampling_t.current_vdda;
+  systemp = sampling_t.current_temp;
+  sysvbat = sampling_t.current_vbat;
+  
+  }
 

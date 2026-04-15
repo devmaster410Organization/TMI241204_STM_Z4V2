@@ -66,7 +66,7 @@ DMA_HandleTypeDef hdma_usart3_tx;
 
 /* Definitions for tsk_USB */
 osThreadId_t tsk_USBHandle;
-uint32_t tsk_USBBuffer[ 128 ];
+uint32_t tsk_USBBuffer[ 256 ];
 osStaticThreadDef_t tsk_USBControlBlock;
 const osThreadAttr_t tsk_USB_attributes = {
   .name = "tsk_USB",
@@ -90,7 +90,7 @@ const osThreadAttr_t tsk_Calc_attributes = {
 };
 /* Definitions for tsk_Ul */
 osThreadId_t tsk_UlHandle;
-uint32_t tsk_UlBuffer[ 128 ];
+uint32_t tsk_UlBuffer[ 256 ];
 osStaticThreadDef_t tsk_UlControlBlock;
 const osThreadAttr_t tsk_Ul_attributes = {
   .name = "tsk_Ul",
@@ -380,7 +380,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_TEMPSENSOR_ADC1;
   sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_247CYCLES_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_640CYCLES_5;
   sConfig.SingleDiff = ADC_SINGLE_ENDED;
   sConfig.OffsetNumber = ADC_OFFSET_NONE;
   sConfig.Offset = 0;
@@ -477,7 +477,7 @@ static void MX_ADC2_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_3;
+  sConfig.Channel = ADC_CHANNEL_13;
   sConfig.Rank = ADC_REGULAR_RANK_3;
   if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {
@@ -486,7 +486,7 @@ static void MX_ADC2_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_4;
+  sConfig.Channel = ADC_CHANNEL_3;
   sConfig.Rank = ADC_REGULAR_RANK_4;
   if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {
@@ -495,7 +495,7 @@ static void MX_ADC2_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_12;
+  sConfig.Channel = ADC_CHANNEL_4;
   sConfig.Rank = ADC_REGULAR_RANK_5;
   if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {
@@ -504,7 +504,7 @@ static void MX_ADC2_Init(void)
 
   /** Configure Regular Channel
   */
-  sConfig.Channel = ADC_CHANNEL_13;
+  sConfig.Channel = ADC_CHANNEL_12;
   sConfig.Rank = ADC_REGULAR_RANK_6;
   if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
   {

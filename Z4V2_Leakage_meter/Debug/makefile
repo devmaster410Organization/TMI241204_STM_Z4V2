@@ -70,7 +70,7 @@ main-build: Z4V2_Leakage_meter.elf secondary-outputs
 
 # Tool invocations
 Z4V2_Leakage_meter.elf Z4V2_Leakage_meter.map: $(OBJS) $(USER_OBJS) C:\GIT\TMI241204_STM_Z4V2\Z4V2_Leakage_meter\STM32G431CBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Z4V2_Leakage_meter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\GIT\TMI241204_STM_Z4V2\Z4V2_Leakage_meter\STM32G431CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Z4V2_Leakage_meter.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "Z4V2_Leakage_meter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"C:\GIT\TMI241204_STM_Z4V2\Z4V2_Leakage_meter\STM32G431CBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Z4V2_Leakage_meter.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
