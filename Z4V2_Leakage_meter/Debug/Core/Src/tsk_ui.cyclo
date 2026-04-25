@@ -1,1 +1,5 @@
-../Core/Src/tsk_ui.c:22:6:tsk_ui	2
+../Core/Src/tsk_ui.c:38:6:tsk_ui	5
+../Core/Src/tsk_ui.c:71:14:ui_show_ver	2
+../Core/Src/tsk_ui.c:91:14:ui_show_adc	3
+../Core/Src/tsk_ui.c:130:14:ui_show_value	3
+../Core/Src/tsk_ui.c:174:14:ui_show_system	4

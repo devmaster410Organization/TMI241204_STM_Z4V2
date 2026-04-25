@@ -7,9 +7,11 @@
 C_SRCS += \
 ../Core/Src/app_freertos.c \
 ../Core/Src/calc_leak.c \
+../Core/Src/calc_volt.c \
 ../Core/Src/chlcd.c \
 ../Core/Src/main.c \
 ../Core/Src/stm32g4xx_hal_msp.c \
+../Core/Src/stm32g4xx_hal_timebase_tim.c \
 ../Core/Src/stm32g4xx_it.c \
 ../Core/Src/syscalls.c \
 ../Core/Src/sysmem.c \
@@ -22,9 +24,11 @@ C_SRCS += \
 OBJS += \
 ./Core/Src/app_freertos.o \
 ./Core/Src/calc_leak.o \
+./Core/Src/calc_volt.o \
 ./Core/Src/chlcd.o \
 ./Core/Src/main.o \
 ./Core/Src/stm32g4xx_hal_msp.o \
+./Core/Src/stm32g4xx_hal_timebase_tim.o \
 ./Core/Src/stm32g4xx_it.o \
 ./Core/Src/syscalls.o \
 ./Core/Src/sysmem.o \
@@ -37,9 +41,11 @@ OBJS += \
 C_DEPS += \
 ./Core/Src/app_freertos.d \
 ./Core/Src/calc_leak.d \
+./Core/Src/calc_volt.d \
 ./Core/Src/chlcd.d \
 ./Core/Src/main.d \
 ./Core/Src/stm32g4xx_hal_msp.d \
+./Core/Src/stm32g4xx_hal_timebase_tim.d \
 ./Core/Src/stm32g4xx_it.d \
 ./Core/Src/syscalls.d \
 ./Core/Src/sysmem.d \
@@ -57,7 +63,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/app_freertos.cyclo ./Core/Src/app_freertos.d ./Core/Src/app_freertos.o ./Core/Src/app_freertos.su ./Core/Src/calc_leak.cyclo ./Core/Src/calc_leak.d ./Core/Src/calc_leak.o ./Core/Src/calc_leak.su ./Core/Src/chlcd.cyclo ./Core/Src/chlcd.d ./Core/Src/chlcd.o ./Core/Src/chlcd.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32g4xx_hal_msp.cyclo ./Core/Src/stm32g4xx_hal_msp.d ./Core/Src/stm32g4xx_hal_msp.o ./Core/Src/stm32g4xx_hal_msp.su ./Core/Src/stm32g4xx_it.cyclo ./Core/Src/stm32g4xx_it.d ./Core/Src/stm32g4xx_it.o ./Core/Src/stm32g4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32g4xx.cyclo ./Core/Src/system_stm32g4xx.d ./Core/Src/system_stm32g4xx.o ./Core/Src/system_stm32g4xx.su ./Core/Src/tsk_calc.cyclo ./Core/Src/tsk_calc.d ./Core/Src/tsk_calc.o ./Core/Src/tsk_calc.su ./Core/Src/tsk_modbus.cyclo ./Core/Src/tsk_modbus.d ./Core/Src/tsk_modbus.o ./Core/Src/tsk_modbus.su ./Core/Src/tsk_ui.cyclo ./Core/Src/tsk_ui.d ./Core/Src/tsk_ui.o ./Core/Src/tsk_ui.su ./Core/Src/util.cyclo ./Core/Src/util.d ./Core/Src/util.o ./Core/Src/util.su
+	-$(RM) ./Core/Src/app_freertos.cyclo ./Core/Src/app_freertos.d ./Core/Src/app_freertos.o ./Core/Src/app_freertos.su ./Core/Src/calc_leak.cyclo ./Core/Src/calc_leak.d ./Core/Src/calc_leak.o ./Core/Src/calc_leak.su ./Core/Src/calc_volt.cyclo ./Core/Src/calc_volt.d ./Core/Src/calc_volt.o ./Core/Src/calc_volt.su ./Core/Src/chlcd.cyclo ./Core/Src/chlcd.d ./Core/Src/chlcd.o ./Core/Src/chlcd.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32g4xx_hal_msp.cyclo ./Core/Src/stm32g4xx_hal_msp.d ./Core/Src/stm32g4xx_hal_msp.o ./Core/Src/stm32g4xx_hal_msp.su ./Core/Src/stm32g4xx_hal_timebase_tim.cyclo ./Core/Src/stm32g4xx_hal_timebase_tim.d ./Core/Src/stm32g4xx_hal_timebase_tim.o ./Core/Src/stm32g4xx_hal_timebase_tim.su ./Core/Src/stm32g4xx_it.cyclo ./Core/Src/stm32g4xx_it.d ./Core/Src/stm32g4xx_it.o ./Core/Src/stm32g4xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32g4xx.cyclo ./Core/Src/system_stm32g4xx.d ./Core/Src/system_stm32g4xx.o ./Core/Src/system_stm32g4xx.su ./Core/Src/tsk_calc.cyclo ./Core/Src/tsk_calc.d ./Core/Src/tsk_calc.o ./Core/Src/tsk_calc.su ./Core/Src/tsk_modbus.cyclo ./Core/Src/tsk_modbus.d ./Core/Src/tsk_modbus.o ./Core/Src/tsk_modbus.su ./Core/Src/tsk_ui.cyclo ./Core/Src/tsk_ui.d ./Core/Src/tsk_ui.o ./Core/Src/tsk_ui.su ./Core/Src/util.cyclo ./Core/Src/util.d ./Core/Src/util.o ./Core/Src/util.su
 
 .PHONY: clean-Core-2f-Src
 

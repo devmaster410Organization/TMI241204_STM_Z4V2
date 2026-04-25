@@ -8,6 +8,12 @@
 #ifndef INC_CALC_LEAK_H_
 #define INC_CALC_LEAK_H_
 
+
+#define ADC_HZ	(3600.0)
+#define I32_ADC_HZ ((int32_t)ADC_HZ)
+#define ADC_CYC	(1.0/ADC_HZ)
+
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif

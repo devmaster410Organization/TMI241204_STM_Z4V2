@@ -24,19 +24,29 @@ void apl_main(void);
 // copy from main.c Periferal
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
+extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc2;
 
-extern TIM_HandleTypeDef htim1;
-extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim3;
+extern CRC_HandleTypeDef hcrc;
+
+extern TIM_HandleTypeDef htim2; // Input Capture
+extern TIM_HandleTypeDef htim3;     
+extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim8;
+extern TIM_HandleTypeDef htim15;
 
-extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
+extern DMA_HandleTypeDef hdma_usart3_tx;
 
 ///
 
 void tsk_calc( void );
+void tsk_ui( void );
+void GetADCRawValues( uint16_t *adc1_values,int num);
+void GetVZValues( float *adc1_values,int num);
+
+
 
 
 extern osMessageQId queue_USBHandle;
@@ -53,6 +63,8 @@ extern osMessageQId queue_ADCHandle;
 #define QSEL_VBAT_CHANNEL   0x0008
 
 #include "calc_leak.h"
+#include "calc_volt.h"
 #include "key.h"
+#include "util.h"
 #include "chlcd.h"
 #endif /* INC_PRJ_H_ */

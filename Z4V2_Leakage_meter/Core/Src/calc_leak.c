@@ -1,9 +1,8 @@
-/*
- * calc_leak.c
- *
- *  Created on: 2026/02/11
- *      Author: ysuga
- */
+/// @file   calc_leak.c
+/// @brief   ADCデータから漏電計算
+/// @author  y.sugawara
+/// @date    2026/04/19
+/// @version 1.0 
 
 #include "prj.h"
 
@@ -126,7 +125,7 @@ int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t 
       int use60;
       if (p60 > st->fsel_ratio * p50)      use60 = 1;
       else if (p50 > st->fsel_ratio * p60) use60 = 0;
-      else                                 use60 = st->use60_prev;
+      else   use60 = st->use60_prev;
 
       st->use60 = use60;
       st->use60_prev = use60;

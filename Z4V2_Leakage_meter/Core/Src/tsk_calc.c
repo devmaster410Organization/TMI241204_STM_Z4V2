@@ -1,17 +1,14 @@
-/*
- * apl_tsk1.c
- *
- *  Created on: Jan 9, 2026
- *      Author: ysuga
- */
-
+/// @file   tsk_calc.c
+/// @brief   漏電、電圧のサンプリング→計算
+/// @author  y.sugawara
+/// @date    2026/04/19
+/// @version 1.0 
 
 #include "prj.h"
 #include "stm32g4xx_ll_adc.h"
 
-#define FS_HZ          1800 // Sampling frequency is 1800hz
+#define FS_HZ          3600 // Sampling frequency is 1800hz
 #define FRAME_SAMPLES  1   // 
-
 
 #define ADC1_CH_NUM 3 // temp, vbat, vref
 #define ADC2_CH_NUM 6 // ADCIN1,2,3,4,5,6
@@ -68,7 +65,6 @@ float Calculate_Vdda(uint32_t vrefint_adc_raw);
 float Calculate_Temperature(uint32_t ts_adc_raw, float vdda) ;
 void Process_ADC_Values( void );
 void put_adc_all_queue( void );
-
 static void calc_adc( uint16_t adsel,uint16_t adc_value );
 
 
@@ -80,27 +76,30 @@ void tsk_calc( void )
 {
 	uint8_t idx;
 	init_sample_buf();
+  Culc_vol_init();  //vol
 	Start_ADC_DMA();
 	Start_Capture_Synced();
-    
+ 	HAL_TIM_Base_Start_IT(&htim3);  // 1mSec タイマー
+  HAL_TIM_Base_Start(&htim15);  // 10uSec カウンター
 	sampling_t.hal_status_adc[0] = HAL_OK;
-    sampling_t.hal_status_adc[1] = HAL_OK;
-    sampling_t.hal_status_adc[2] = HAL_OK;
-    sampling_t.hal_status_adc[3] = HAL_OK;
-    sampling_t.osMessagePutStat = osOK;
+  sampling_t.hal_status_adc[1] = HAL_OK;
+  sampling_t.hal_status_adc[2] = HAL_OK;
+  sampling_t.hal_status_adc[3] = HAL_OK;
+  sampling_t.osMessagePutStat = osOK;
 
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], FS_HZ, 1.0f, 0.30f, 0.10f, 0.995f, 1.30f );
-#if 0	
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
+
+#if 0  
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.263953774e-3,0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.263953774e-3, 0.30f, 0.10f, 0.995f );
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
 #endif
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,0.000539069995 ,0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,0.000539069995,0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], FS_HZ,0.000539069995, 0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,0.000539069995,0.30f, 0.10f, 0.995f, 1.30f );
+  Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,3.6E-4 ,0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,3.6E-4 ,0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], FS_HZ,3.6E-4, 0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,3.6E-4,0.30f, 0.10f, 0.995f, 1.30f );
 	
 	for(;;){
     Process_ADC_Values( );
@@ -109,7 +108,7 @@ void tsk_calc( void )
 		uint8_t msg_prio;
 		uint8_t msg;
 		osStatus_t status = osMessageQueueGet(queue_ADCHandle,&msg,&msg_prio,1000); 
-		PORT_HI(TP8);
+//		PORT_HI(TP8);
 
 		switch( status ){
 		case osOK:
@@ -119,7 +118,11 @@ void tsk_calc( void )
 			if( idx < SAMPLE_INDEX_MAX ){
 				int rslt;
 				float f;
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
+
+        int16_t adcv[2] = { pbuf->buf[QSEL_IN1_CHANNEL], pbuf->buf[QSEL_IN2_CHANNEL] };
+        Culc_vol( adcv );
+
+        rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
 				if(rslt == 1){
 				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
 				}
@@ -128,7 +131,7 @@ void tsk_calc( void )
 					sampling_t.out_ma[QSEL_IN2_CHANNEL] = f;
 				}
 
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+        rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
 					sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
 				}
@@ -155,7 +158,7 @@ void tsk_calc( void )
 		default:
         	break;
 		}
-		PORT_LO(TP8);
+//		PORT_LO(TP8);
     }
 }
 
@@ -175,28 +178,28 @@ static void calc_adc( uint16_t sel,uint16_t adc_value )
   switch( sel ){
     case QSEL_IN1_CHANNEL:  // ADCIN0
         for(int i =0;i<1;i++){
-            PORT_HI(TP8); PORT_LO(TP8);
+//            PORT_HI(TP8); PORT_LO(TP8);
         } 
 
       break;      
     case QSEL_IN3_CHANNEL:  // ADCIN1
         for(int i =0;i<2;i++){
-            PORT_HI(TP8); PORT_LO(TP8);
+//            PORT_HI(TP8); PORT_LO(TP8);
         } 
       break;
     case QSEL_IN4_CHANNEL: // ADCIN2
         for(int i =0;i<2;i++){
-            PORT_HI(TP8); PORT_LO(TP8);
+//            PORT_HI(TP8); PORT_LO(TP8);
         } 
       break;
     case QSEL_IN12_CHANNEL:  //SDADC1 IN4
         for(int i =0;i<4;i++){
-            PORT_HI(TP8); PORT_LO(TP8);
+//            PORT_HI(TP8); PORT_LO(TP8);
         } 
       break;      
     case QSEL_IN13_CHANNEL:  //SDADC1 IN5
         for(int i =0;i<5;i++){
-            PORT_HI(TP8); PORT_LO(TP8);
+//            PORT_HI(TP8); PORT_LO(TP8);
         } 
       break;
     default:
@@ -205,23 +208,33 @@ static void calc_adc( uint16_t sel,uint16_t adc_value )
 
 }
 
-// 例: TIM2=Master, TIM3=Slave とする
+// 例: TIM2=Master, TIM4=Slave とする
 
 static void Start_Capture_Synced(void)
 {
-	// --- Slave側 Input Capture 開始（割り込み or DMA）---
-	HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_3);
-	// 必要なら CH3/CH4 も
+	// --- 同期確保：両タイマのCNTをゼロ化 ---
+	__HAL_TIM_SET_COUNTER(&htim2, 0);
+	__HAL_TIM_SET_COUNTER(&htim4, 0);
 
-	// --- Master側 Input Capture も使うなら先に開始してOK ---
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_1);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_2);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_3);
-	HAL_TIM_IC_Start_IT(&htim3, TIM_CHANNEL_4);
+	// --- UGイベントを発火してPSC反映 ---
+//  HAL_TIM_GenerateEvent(&htim2, TIM_EVENTSOURCE_UPDATE);
+//  HAL_TIM_GenerateEvent(&htim4, TIM_EVENTSOURCE_UPDATE);
 
-	// --- カウンタ開始順：Slave → Master ---
-	HAL_TIM_Base_Start(&htim1);  // Slave counter running (resetを待つ)
-	HAL_TIM_Base_Start(&htim3);  // Master starts -> Update(TRGO)でSlaveがCNT=0に
+	// --- 割り込み禁止で同時スタート（Slave → Master順） ---
+	__disable_irq();
+	HAL_TIM_Base_Start(&htim4);  // Slave start
+	HAL_TIM_Base_Start(&htim2);  // Master start -> TRGOでSlaveが同期
+	__enable_irq();
+
+	// --- Input Capture開始（Slave → Master） ---
+	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
+
+	// --- Master側 Input Capture ---
+	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
+	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
+
 }
  
 
@@ -233,33 +246,29 @@ uint16_t ccr_log[200];
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
-  if (htim->Instance == TIM3)
+  if (htim->Instance == TIM2)
   {
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
     	ccr_buf[0] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
       // ...
     }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
     	ccr_buf[1]= HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      // ...
-    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_3) {
-    	ccr_buf[2]= HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3 );
-      // ...
-    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
-      ccr_buf[3] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4 );
-      if( ccr_logp <200){
-    	  ccr_log[ccr_logp++] = ccr_buf[3];
-      }
-      // ...
     }
     // CH2/CH3/CH4...
   }
-  else if (htim->Instance == TIM1)
+  else if (htim->Instance == TIM4)
   {
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-      ccr_buf[4] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      ccr_buf[2] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      // ...
+    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+      ccr_buf[3] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      // ...
+    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
+      ccr_buf[4] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
       // ...
     }
-  }
+ }
 }
 
 
@@ -388,7 +397,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if( hadc->Instance == ADC2 )
   {
-//PORT_TGL(TP_PA9);
+  PORT_TGL(TP8);
+
+    //PORT_TGL(TP_PA9);
     sampling_t.adc2_callback_count++;
 
     put_adc_all_queue( );
@@ -493,3 +504,19 @@ void Process_ADC_Values( void ) {
   
   }
 
+
+void GetADCRawValues( uint16_t *adc_values,int num)
+{
+  for(int i =0;i<num;i++){
+	  adc_values[i] = sampling_t.adc2_buf[i];
+  }
+}
+
+
+
+void GetVZValues( float *adc_values,int num)
+{
+    for(int i =0;i<num;i++){
+    	adc_values[i] = sampling_t.out_ma[i];
+    }
+}
