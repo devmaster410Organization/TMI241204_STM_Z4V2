@@ -22,6 +22,7 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "cmsis_os.h"
 
 /* USER CODE END INCLUDE */
 
@@ -263,6 +264,13 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   /* USER CODE BEGIN 6 */
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  osStatus result ;
+  for(int i = 0;i < *Len;i++){
+    result = osMessagePut(queue_USBHandle, Buf[i], 0);
+    if( result != osOK){
+      break;
+    }
+  }
   return (USBD_OK);
   /* USER CODE END 6 */
 }

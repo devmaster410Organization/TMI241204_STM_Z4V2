@@ -43,6 +43,7 @@ extern DMA_HandleTypeDef hdma_usart3_tx;
 
 void tsk_calc( void );
 void tsk_ui( void );
+void tsk_usb( void );
 void GetADCRawValues( uint16_t *adc1_values,int num);
 void GetVZValues( float *adc1_values,int num);
 

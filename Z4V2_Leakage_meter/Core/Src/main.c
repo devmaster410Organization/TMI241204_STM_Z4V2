@@ -996,6 +996,7 @@ void StartDefaultTask(void *argument)
   /* init code for USB_Device */
   MX_USB_Device_Init();
   /* USER CODE BEGIN 5 */
+  tsk_usb();
   /* Infinite loop */
   for(;;)
   {
@@ -1052,7 +1053,7 @@ void StartTask02(void *argument)
 void StartTask03(void *argument)
 {
   /* USER CODE BEGIN StartTask03 */
-  tsk_modbus();
+  tsk_modbus_slave();
   /* Infinite loop */
   for(;;)
   {
