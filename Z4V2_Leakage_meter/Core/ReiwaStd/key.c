@@ -126,7 +126,7 @@ void	KeyScan( void )
 						*pscnt = 0 ;
 						*psrpt = 0 ;
 						AfifoPut(&fifokey,kdata_on[ycnt][x]);
-						//tSys.PowOffTimer = POW_OFF_TIME; // Timer
+						//g_sys.PowOffTimer = POW_OFF_TIME; // Timer
 					}
 				}
 			}else{	/* keystat = ON */

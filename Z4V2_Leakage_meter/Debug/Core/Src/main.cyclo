@@ -13,8 +13,8 @@
 ../Core/Src/main.c:896:13:MX_DMA_Init	1
 ../Core/Src/main.c:921:13:MX_GPIO_Init	1
 ../Core/Src/main.c:994:6:StartDefaultTask	1
-../Core/Src/main.c:1014:6:StartTask04	1
-../Core/Src/main.c:1033:6:StartTask02	1
-../Core/Src/main.c:1052:6:StartTask03	1
-../Core/Src/main.c:1072:6:HAL_TIM_PeriodElapsedCallback	2
-../Core/Src/main.c:1090:6:Error_Handler	1
+../Core/Src/main.c:1015:6:StartTask04	1
+../Core/Src/main.c:1034:6:StartTask02	1
+../Core/Src/main.c:1053:6:StartTask03	1
+../Core/Src/main.c:1073:6:HAL_TIM_PeriodElapsedCallback	2
+../Core/Src/main.c:1091:6:Error_Handler	1

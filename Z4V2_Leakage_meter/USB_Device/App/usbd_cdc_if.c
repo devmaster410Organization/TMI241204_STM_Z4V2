@@ -24,6 +24,8 @@
 /* USER CODE BEGIN INCLUDE */
 #include "cmsis_os.h"
 
+extern osMessageQId queue_USBHandle;
+
 /* USER CODE END INCLUDE */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -266,7 +268,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   osStatus result ;
   for(int i = 0;i < *Len;i++){
-    result = osMessagePut(queue_USBHandle, Buf[i], 0);
+    result = osMessageQueuePut(queue_USBHandle, &Buf[i], 0, 0); // timeout 0
     if( result != osOK){
       break;
     }

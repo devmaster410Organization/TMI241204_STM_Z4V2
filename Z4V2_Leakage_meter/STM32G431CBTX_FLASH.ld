@@ -192,6 +192,7 @@ SECTIONS
   .setup0 (NOLOAD) :
   {
     . = ALIGN(4);
+	_backup_flash_start = .;
     KEEP(*(.setup0))
     . = ALIGN(4);
   } >DATA_FLASH0
@@ -199,6 +200,7 @@ SECTIONS
   .setup1 (NOLOAD) :
   {
     . = ALIGN(4);
+	_backup_sub_flash_start = .;
     KEEP(*(.setup1))
     . = ALIGN(4);
   } >DATA_FLASH1

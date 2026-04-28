@@ -10,14 +10,33 @@
 #define INC_PRJ_H_
 
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <fifo.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <time.h>
+#include "stm32g4xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "cmsis_os.h"
+#include "cmsis_os.h"
+#include "usb_device.h"
+
+#include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 
 #include "stm32_def.h"
-#include "main.h"
 #include "cmsis_os.h"
 
+#include "key.h"
+#include "chlcd.h"
+#include "uart_drv.h"
+#include "setup.h"
+#include "ver.h"
 
 void apl_main(void);
 
@@ -48,7 +67,12 @@ void GetADCRawValues( uint16_t *adc1_values,int num);
 void GetVZValues( float *adc1_values,int num);
 
 
-
+typedef struct{
+    uint8_t dip_sw;
+    uint8_t setup_update;
+    uint8_t modbus_slave_address;
+}sys_t;
+extern sys_t g_sys;
 
 extern osMessageQId queue_USBHandle;
 extern osMessageQId queue_ADCHandle;
@@ -63,9 +87,10 @@ extern osMessageQId queue_ADCHandle;
 #define QSEL_VREF_CHANNEL   0x0007
 #define QSEL_VBAT_CHANNEL   0x0008
 
+
 #include "calc_leak.h"
 #include "calc_volt.h"
-#include "key.h"
 #include "util.h"
-#include "chlcd.h"
+#include "tsk_modbus.h"
+#include "modbus_reg.h"
 #endif /* INC_PRJ_H_ */

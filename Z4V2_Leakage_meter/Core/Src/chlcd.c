@@ -1,6 +1,9 @@
+/// @file   chlcd.c
+/// @brief   ST786LC02 LCD Library GPIO bit bang access
+/// @author  y.sugawara
+/// @date    2026/04/19
+/// @version 1.0 
 
-// ST786LC02 LCD Library
-// GPIO bit bang access
 #include <string.h>
 #include "chlcd.h"
 #include "strcnv.h"
@@ -61,7 +64,6 @@ void  lcd_db_out( uint8_t data );
 /*==============================================================*
  *			Valiable Definition									*
  *==============================================================*/
-#pragma section IRAM
 uint8_t	cursorX , cursorY ;
 uint8_t	*cg_adrs[ 8 ] ;			/* CG address				*/
 #pragma section

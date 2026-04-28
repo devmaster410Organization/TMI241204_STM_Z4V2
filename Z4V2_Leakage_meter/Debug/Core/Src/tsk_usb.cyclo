@@ -1,0 +1,13 @@
+../Core/Src/tsk_usb.c:58:10:usbGetChar	4
+../Core/Src/tsk_usb.c:87:13:usbUngetChar	1
+../Core/Src/tsk_usb.c:94:13:usbEchoBack	2
+../Core/Src/tsk_usb.c:105:6:tsk_usb	15
+../Core/Src/tsk_usb.c:168:12:usb_putchar	2
+../Core/Src/tsk_usb.c:185:12:usb_puts	5
+../Core/Src/tsk_usb.c:203:12:usb_puts_k	5
+../Core/Src/tsk_usb.c:226:5:parse_input_words	10
+../Core/Src/tsk_usb.c:297:6:usb_debug_hex	2
+../Core/Src/tsk_usb.c:314:11:search_keyword	4
+../Core/Src/tsk_usb.c:337:12:analyze_command	9
+../Core/Src/tsk_usb.c:396:12:cmd_set	27
+../Core/Src/tsk_usb.c:497:12:cmd_status	2

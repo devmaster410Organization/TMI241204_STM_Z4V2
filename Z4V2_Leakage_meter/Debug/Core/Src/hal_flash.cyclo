@@ -1,0 +1,3 @@
+../Core/Src/hal_flash.c:16:6:Flash_clear	2
+../Core/Src/hal_flash.c:43:11:Flash_load	1
+../Core/Src/hal_flash.c:52:6:Flash_store	4

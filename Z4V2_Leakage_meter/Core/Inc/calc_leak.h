@@ -1,9 +1,8 @@
-/*
- * calc_leak.h
- *
- *  Created on: 2026/02/11
- *      Author: ysuga
- */
+/// @file    calc_leak.h
+/// @brief   漏れ電流計算ヘッダ
+/// @author  Y.Sugawara
+/// @date    2026/2/11
+/// @version 1.0
 
 #ifndef INC_CALC_LEAK_H_
 #define INC_CALC_LEAK_H_
