@@ -1,8 +1,8 @@
 /// @file   chlcd.c
 /// @brief   ST786LC02 LCD Library GPIO bit bang access
 /// @author  y.sugawara
-/// @date    2026/04/19
-/// @version 1.0 
+/// @date    2026/04/29
+/// @version 1.1  uint8_t * → char * へ変更
 
 #include <string.h>
 #include "chlcd.h"
@@ -37,7 +37,7 @@
 /*==============================================================*
  *			Function prototypes									*
  *==============================================================*/
-uint8_t	*ChlcdVersion( void ) ;
+char	*ChlcdVersion( void ) ;
 void	ChlcdInit( void ) ;
 void	ChlcdCls( void ) ;
 void	ChlcdPutchar( uint8_t c ) ;
@@ -45,8 +45,8 @@ void	ChlcdPuts( uint8_t *str ) ;
 void	ChlcdLocate( uint8_t x , uint8_t y ) ;
 void	ChlcdSetcgram( uint8_t cgno , uint8_t *adr ) ;
 
-void	ChlcdPrint( uint16_t x, uint16_t y, uint8_t *str ) ;
-void 	ChlcdnPrint( uint16_t x, uint16_t y, uint8_t *str, uint16_t n ) ;
+void	ChlcdPrint( uint16_t x, uint16_t y, char *str ) ;
+void 	ChlcdnPrint( uint16_t x, uint16_t y, char *str, uint16_t n ) ;
 void	ChlcdPutHex( uint16_t x, uint16_t y, uint16_t h, uint16_t keta ) ;
 void	ChlcdPutUdec( uint16_t x, uint16_t y, uint16_t ui, uint16_t keta ) ;
 void	ChlcdPutSdec( uint16_t x, uint16_t y, int16_t i, uint16_t keta ) ;
@@ -66,7 +66,6 @@ void  lcd_db_out( uint8_t data );
  *==============================================================*/
 uint8_t	cursorX , cursorY ;
 uint8_t	*cg_adrs[ 8 ] ;			/* CG address				*/
-#pragma section
 
 static	const	uint8_t	line_add[] = { 0x00 , 0x40,0x14,0x54 };
 static	char	*const	pChlcdVer = "v1.00 26.04.14" ;
@@ -110,7 +109,7 @@ void  lcd_db_out_high4( uint8_t data )
  *		引    数 ： void												*
  *		返    値 ： バージョンストリングポインタ						*
  *----------------------------------------------------------------------*/
-uint8_t	*ChlcdVersion( void )
+char	*ChlcdVersion( void )
 {
 	return pChlcdVer ;
 }
@@ -346,7 +345,7 @@ uint16_t i ;
  *		引    数 ： *str : 表示文字列ポインタ							*
  *		返    値 ： void												*
  *----------------------------------------------------------------------*/
-void	ChlcdPrint( uint16_t x, uint16_t y , uint8_t *str )
+void	ChlcdPrint( uint16_t x, uint16_t y , char *str )
 {
 	if( ( x < LINE_SIZE )&&( y < LINES ) ){
 		cursorX = x ;
@@ -363,7 +362,7 @@ void	ChlcdPrint( uint16_t x, uint16_t y , uint8_t *str )
  *		引    数 ： n    : 表示文字長									*
  *		返    値 ： void												*
  *----------------------------------------------------------------------*/
-void 	ChlcdnPrint( uint16_t x , uint16_t y , uint8_t *str , uint16_t n )
+void 	ChlcdnPrint( uint16_t x , uint16_t y , char *str , uint16_t n )
 {
 	if( ( x < LINE_SIZE )&&( y < LINES ) ){
 		cursorX = x ;
@@ -450,7 +449,7 @@ void	Aitos( uint8_t *dst,uint16_t h,uint16_t keta,uint8_t zs)
  *----------------------------------------------------------------------*/
 void	ChlcdPutHex( uint16_t x , uint16_t y , uint16_t h, uint16_t keta )
 {
-uint8_t	ustr[ 10 ] ;
+char	ustr[ 10 ] ;
 
 	Aitoa( ustr , h , keta , '0' );
 	ChlcdnPrint( x , y , ustr , keta ) ;

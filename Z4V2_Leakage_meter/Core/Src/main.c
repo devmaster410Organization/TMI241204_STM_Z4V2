@@ -23,7 +23,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "prj.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,7 +59,6 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart3;
-DMA_HandleTypeDef hdma_usart3_tx;
 
 /* Definitions for tsk_USB */
 osThreadId_t tsk_USBHandle;
@@ -149,10 +148,10 @@ static void MX_TIM7_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_CRC_Init(void);
 static void MX_TIM15_Init(void);
-void StartDefaultTask(void *argument);
-void StartTask04(void *argument);
-void StartTask02(void *argument);
-void StartTask03(void *argument);
+void Start_tskUSB(void *argument);
+void Start_tskCalc(void *argument);
+void Start_taskUI(void *argument);
+void Start_taskModbus(void *argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -235,16 +234,16 @@ int main(void)
 
   /* Create the thread(s) */
   /* creation of tsk_USB */
-  tsk_USBHandle = osThreadNew(StartDefaultTask, NULL, &tsk_USB_attributes);
+  tsk_USBHandle = osThreadNew(Start_tskUSB, NULL, &tsk_USB_attributes);
 
   /* creation of tsk_Calc */
-  tsk_CalcHandle = osThreadNew(StartTask04, NULL, &tsk_Calc_attributes);
+  tsk_CalcHandle = osThreadNew(Start_tskCalc, NULL, &tsk_Calc_attributes);
 
   /* creation of tsk_Ul */
-  tsk_UlHandle = osThreadNew(StartTask02, NULL, &tsk_Ul_attributes);
+  tsk_UlHandle = osThreadNew(Start_taskUI, NULL, &tsk_Ul_attributes);
 
   /* creation of tsk_MODBUS */
-  tsk_MODBUSHandle = osThreadNew(StartTask03, NULL, &tsk_MODBUS_attributes);
+  tsk_MODBUSHandle = osThreadNew(Start_taskModbus, NULL, &tsk_MODBUS_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -880,7 +879,7 @@ static void MX_USART3_UART_Init(void)
   {
     Error_Handler();
   }
-  if (HAL_UARTEx_DisableFifoMode(&huart3) != HAL_OK)
+  if (HAL_UARTEx_EnableFifoMode(&huart3) != HAL_OK)
   {
     Error_Handler();
   }
@@ -907,9 +906,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
-  /* DMA1_Channel3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
 
 }
 
@@ -984,18 +980,22 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE END 4 */
 
-/* USER CODE BEGIN Header_StartDefaultTask */
+/* USER CODE BEGIN Header_Start_tskUSB */
 /**
-  * @brief  Function implementing the defaultTask thread.
+  * @brief  Function implementing the tsk_USB thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_StartDefaultTask */
-void StartDefaultTask(void *argument)
+/* USER CODE END Header_Start_tskUSB */
+void Start_tskUSB(void *argument)
 {
   /* init code for USB_Device */
   MX_USB_Device_Init();
   /* USER CODE BEGIN 5 */
+  //タスクに依らない初期化処理
+
+
+
   tsk_usb();
   /* Infinite loop */
   for(;;)
@@ -1005,61 +1005,61 @@ void StartDefaultTask(void *argument)
   /* USER CODE END 5 */
 }
 
-/* USER CODE BEGIN Header_StartTask04 */
+/* USER CODE BEGIN Header_Start_tskCalc */
 /**
 * @brief Function implementing the tsk_Calc thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask04 */
-void StartTask04(void *argument)
+/* USER CODE END Header_Start_tskCalc */
+void Start_tskCalc(void *argument)
 {
-  /* USER CODE BEGIN StartTask04 */
+  /* USER CODE BEGIN Start_tskCalc */
   tsk_calc();
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask04 */
+  /* USER CODE END Start_tskCalc */
 }
 
-/* USER CODE BEGIN Header_StartTask02 */
+/* USER CODE BEGIN Header_Start_taskUI */
 /**
 * @brief Function implementing the tsk_Ul thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask02 */
-void StartTask02(void *argument)
+/* USER CODE END Header_Start_taskUI */
+void Start_taskUI(void *argument)
 {
-  /* USER CODE BEGIN StartTask02 */
+  /* USER CODE BEGIN Start_taskUI */
   tsk_ui();
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask02 */
+  /* USER CODE END Start_taskUI */
 }
 
-/* USER CODE BEGIN Header_StartTask03 */
+/* USER CODE BEGIN Header_Start_taskModbus */
 /**
 * @brief Function implementing the tsk_MODBUS thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartTask03 */
-void StartTask03(void *argument)
+/* USER CODE END Header_Start_taskModbus */
+void Start_taskModbus(void *argument)
 {
-  /* USER CODE BEGIN StartTask03 */
+  /* USER CODE BEGIN Start_taskModbus */
   tsk_modbus_slave();
   /* Infinite loop */
   for(;;)
   {
     osDelay(1);
   }
-  /* USER CODE END StartTask03 */
+  /* USER CODE END Start_taskModbus */
 }
 
 /**

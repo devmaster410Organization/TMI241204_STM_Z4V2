@@ -97,7 +97,7 @@ void tsk_calc( void )
 	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
 #endif
   Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,4.059207897e-4 ,0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,2.690710247e-4 ,0.30f, 0.10f, 0.995f, 1.30f );
+	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,3.031481135e-4 ,0.30f, 0.10f, 0.995f, 1.30f );
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], FS_HZ,2.690710247E-4, 0.30f, 0.10f, 0.995f, 1.30f );
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,2.690710247E-4,0.30f, 0.10f, 0.995f, 1.30f );
 	
@@ -397,7 +397,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
   if( hadc->Instance == ADC2 )
   {
-  PORT_TGL(TP8);
 
     //PORT_TGL(TP_PA9);
     sampling_t.adc2_callback_count++;

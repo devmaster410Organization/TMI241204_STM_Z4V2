@@ -28,13 +28,14 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <uart_drvsmpl.h>
 
 #include "stm32_def.h"
 #include "cmsis_os.h"
 
 #include "key.h"
 #include "chlcd.h"
-#include "uart_drv.h"
+#include "strcnv.h"
 #include "setup.h"
 #include "ver.h"
 
@@ -63,6 +64,7 @@ extern DMA_HandleTypeDef hdma_usart3_tx;
 void tsk_calc( void );
 void tsk_ui( void );
 void tsk_usb( void );
+void tsk_modbus_slave( void );
 void GetADCRawValues( uint16_t *adc1_values,int num);
 void GetVZValues( float *adc1_values,int num);
 

@@ -71,11 +71,11 @@ void tsk_ui( void )
 UI_Disp_enum ui_show_ver( void )
 {
   UI_Disp_enum uie = UI_SHOW_VALUE;
-  ChlcdPrint( 0, 0, (uint8_t*)"Z4V2 LeakTester" );
-  ChlcdPrint( 0, 1, (uint8_t*)pVer );
-  ChlcdPrint( 0, 2, (uint8_t*)"Techno MIRAI" );
+  ChlcdPrint( 0, 0, "Z4V2 LeakTester" );
+  ChlcdPrint( 0, 1, (char*)pVer );
+  ChlcdPrint( 0, 2, "Techno MIRAI" );
   for(int i=0;i<20;i++){
-    ChlcdPrint( 0, 0, (uint8_t*)"Z4V2 LeakTester" );
+    ChlcdPrint( 0, 0, "Z4V2 LeakTester" );
     osDelay(99);
   }
   return uie;
@@ -99,18 +99,18 @@ UI_Disp_enum ui_show_adc( void )
     GetADCRawValues(adc_values , ADC_NUM);
 
     sprintf( (char*)lcd_str, "ADC%u:%4u", 1, adc_values[0] );
-    ChlcdPrint( 0, 0, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 0, lcd_str );
     sprintf( (char*)lcd_str, "ADC%u:%4u", 2, adc_values[1] );
-    ChlcdPrint( 0, 1, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 1, lcd_str );
 
     sprintf( (char*)lcd_str, "ADC%u:%4u", 3, adc_values[2] );
-    ChlcdPrint( 10, 0, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 0, lcd_str );
     sprintf( (char*)lcd_str, "ADC%u:%4u", 4, adc_values[3] );
-    ChlcdPrint( 10, 1, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 1, lcd_str );
     sprintf( (char*)lcd_str, "ADC%u:%4u", 5, adc_values[4] );
-    ChlcdPrint( 10, 2, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 2, lcd_str );
     sprintf( (char*)lcd_str, "ADC%u:%4u", 6, adc_values[5] );
-    ChlcdPrint( 10, 3, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 3, lcd_str );
 
 
     osDelay( 99 );
@@ -138,25 +138,25 @@ UI_Disp_enum ui_show_value( void )
   while( done == false ){
     GetVValues(fval,3);
     sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
-    ChlcdPrint( 0, 0, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 0, lcd_str );
     sprintf( (char*)lcd_str, "V1 %5.1fV ", fval[1] );
-    ChlcdPrint( 0, 1, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 1, lcd_str );
     sprintf( (char*)lcd_str, "V2 %5.1fV", fval[2] );
-    ChlcdPrint( 0, 2, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 2, lcd_str );
 
     GetVZValues(fval,ADC_NUM);
     sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
-    ChlcdPrint( 0, 3, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 3, lcd_str );
 
 
     sprintf( (char*)lcd_str, "z0 %7.3f", fval[2] );
-    ChlcdPrint( 10, 0, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 0, lcd_str );
     sprintf( (char*)lcd_str, "Z1 %7.3f", fval[3] );
-    ChlcdPrint( 10, 1, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 1, lcd_str );
     sprintf( (char*)lcd_str, "Z2 %7.3f", fval[4] );
-    ChlcdPrint( 10, 2, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 2, lcd_str );
     sprintf( (char*)lcd_str, "Z3 %7.3f", fval[5] );
-    ChlcdPrint( 10, 3, (uint8_t*)lcd_str );
+    ChlcdPrint( 10, 3, lcd_str );
     osDelay( 99 );
     uint8_t keystat = KEY_pget();
     if( keystat == (K_MODE|K_ON) ){
@@ -177,19 +177,19 @@ UI_Disp_enum ui_show_system( void )
   UI_Disp_enum uie = UI_SHOW_VALUE;
   ChlcdCls();
   while(done ==false ){
-    sprintf( (char*)lcd_str, "VDDA = %5.3f V", sysvdda );
-    ChlcdPrint( 0, 0, (uint8_t*)lcd_str );
+    sprintf( lcd_str, "VDDA = %5.3f V", sysvdda );
+    ChlcdPrint( 0, 0, lcd_str );
 
 
     sprintf( (char*)lcd_str, "TEMP = %5.1f C", systemp  );
-    ChlcdPrint( 0, 1, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 1, lcd_str );
 
 
     sprintf( (char*)lcd_str, "VBAT = %5.3f V", sysvbat );
-    ChlcdPrint( 0, 2, (uint8_t*)lcd_str );
+    ChlcdPrint( 0, 2, lcd_str );
 
     sprintf( (char*)lcd_str, "[%02X]", GetDsw());
-    ChlcdPrint( 16, 0, (uint8_t*)lcd_str );
+    ChlcdPrint( 16, 0,lcd_str );
 
     osDelay( 0 );
 
@@ -197,7 +197,7 @@ UI_Disp_enum ui_show_system( void )
     uint8_t keystat = KEY_pget();
     if( keystat  ){
       sprintf( (char*)lcd_str, "KEY:%02X", keystat );
-      ChlcdPrint( 10, 3, (uint8_t*)lcd_str );
+      ChlcdPrint( 10, 3, lcd_str );
 
       if( keystat == (K_MODE|K_ON) ){
         done = true;

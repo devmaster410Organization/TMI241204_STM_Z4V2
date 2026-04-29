@@ -26,7 +26,7 @@ static	const	uint8_t	pAfifoVer[] = "Afifo Ver1.00 1997/10/23" ;
 /*==============================================================*
  *			Function prototypes			*
  *==============================================================*/
-uint8_t	*AfifoVer( void );
+const char  *AfifoVer( void );
 
 // 8bitデータ用FIFOマネージャ
 void		AfifoInit( FIFO *pFifo, uint8_t *pBuf, uint16_t size ) ;
@@ -62,7 +62,7 @@ bool		ApfifoGet( PFIFO *pFifo, void **pAdr ) ;
  *		引    数 ： なし					*
  *		返    値 ： バージョン情報のポインタ			*
  *----------------------------------------------------------------------*/
-uint8_t  *AfifoVer( void )
+const char  *AfifoVer( void )
 {
 	return pAfifoVer ;
 }

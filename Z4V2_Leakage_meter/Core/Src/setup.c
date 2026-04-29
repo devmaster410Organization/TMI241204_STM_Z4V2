@@ -19,7 +19,7 @@ static T_SETUP tsetupwork __attribute__ ((aligned(4)));	// 関数に渡すとき
 int SETUP_write(  T_SETUP *ptsetup )
 {
 	bool boo,boo2;
-	ptsetup->check_sum = ~AcalSUM((char*)ptsetup,(char *)&ptsetup->check_sum - (char *)ptsetup);
+	ptsetup->check_sum = ~AcalSUM((char*)ptsetup,(uint16_t)((char *)&ptsetup->check_sum - (char *)ptsetup));
 
 	tsetupwork = *ptsetup;
 	for(int i = BACKUP_FLASH_SECTOR_TOP; i<= BACKUP_FLASH_SECTOR_END ;i++){

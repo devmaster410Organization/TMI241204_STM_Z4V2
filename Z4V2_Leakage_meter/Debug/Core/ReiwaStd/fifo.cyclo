@@ -1,0 +1,16 @@
+../Core/ReiwaStd/fifo.c:65:14:AfifoVer	1
+../Core/ReiwaStd/fifo.c:77:6:AfifoInit	1
+../Core/ReiwaStd/fifo.c:92:10:AfifoCount	1
+../Core/ReiwaStd/fifo.c:103:6:AfifoIns	3
+../Core/ReiwaStd/fifo.c:121:6:AfifoPut	3
+../Core/ReiwaStd/fifo.c:139:6:AfifoGet	3
+../Core/ReiwaStd/fifo.c:159:6:HfifoInit	1
+../Core/ReiwaStd/fifo.c:174:10:HfifoCount	1
+../Core/ReiwaStd/fifo.c:185:6:HfifoIns	3
+../Core/ReiwaStd/fifo.c:203:6:HfifoPut	3
+../Core/ReiwaStd/fifo.c:221:6:HfifoGet	3
+../Core/ReiwaStd/fifo.c:272:6:ApfifoInit	1
+../Core/ReiwaStd/fifo.c:287:10:ApfifoCount	1
+../Core/ReiwaStd/fifo.c:298:6:ApfifoIns	3
+../Core/ReiwaStd/fifo.c:316:6:ApfifoPut	3
+../Core/ReiwaStd/fifo.c:334:6:ApfifoGet	3

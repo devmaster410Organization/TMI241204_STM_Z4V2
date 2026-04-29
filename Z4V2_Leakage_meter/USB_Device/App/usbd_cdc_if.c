@@ -23,7 +23,7 @@
 
 /* USER CODE BEGIN INCLUDE */
 #include "cmsis_os.h"
-
+#include "prj.h"
 extern osMessageQId queue_USBHandle;
 
 /* USER CODE END INCLUDE */

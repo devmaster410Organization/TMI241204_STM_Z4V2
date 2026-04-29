@@ -1,12 +1,15 @@
-// ST7066U Charactor LCD Driver
-//
+/// @file   chlcd.h
+/// @brief   ST786LC02 LCD Library GPIO bit bang access
+/// @author  y.sugawara
+/// @date    2026/04/29
+/// @version 1.1  uint8_t * → char * へ変更
 
 #pragma once
 
 #include "main.h"
 #include "stm32_def.h"
 
-extern	uint8_t	*ChlcdVersion( void ) ;
+extern	char	*ChlcdVersion( void ) ;
 extern	void	ChlcdInit( void ) ;
 extern	void	ChlcdCls( void ) ;
 extern	void	ChlcdPutchar( uint8_t c ) ;
@@ -14,8 +17,8 @@ extern	void	ChlcdPuts( uint8_t *str ) ;
 extern	void	ChlcdLocate( uint8_t x , uint8_t y ) ;
 extern	void	ChlcdSetcgram( uint8_t cgno , uint8_t *adr ) ;
 
-extern	void	ChlcdPrint( uint16_t x, uint16_t y, uint8_t *str ) ;
-extern	void 	ChlcdnPrint( uint16_t x, uint16_t y, uint8_t *str, uint16_t n ) ;
+extern	void	ChlcdPrint( uint16_t x, uint16_t y, char *str ) ;
+extern	void 	ChlcdnPrint( uint16_t x, uint16_t y, char *str, uint16_t n ) ;
 extern	void	ChlcdPutHex( uint16_t x, uint16_t y, uint16_t h, uint16_t keta ) ;
 extern	void	ChlcdPutUdec( uint16_t x, uint16_t y, uint16_t ui, uint16_t keta ) ;
 extern	void	ChlcdPutSdec( uint16_t x, uint16_t y, int16_t i, uint16_t keta ) ;

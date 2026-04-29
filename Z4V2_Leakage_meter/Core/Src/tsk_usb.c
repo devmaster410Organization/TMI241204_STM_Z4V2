@@ -61,7 +61,7 @@ uint16_t usbGetChar( uint32_t timeout )
    if( USB_RCV_TIMEOUT_CODE == usbcb.ungetdata ){
 		uint8_t msg_prio;
 		uint8_t msg;
-		osStatus_t status = osMessageQueueGet(queue_USBHandle,&msg,&msg_prio,1000); 
+		osStatus_t status = osMessageQueueGet(queue_USBHandle,&msg,&msg_prio,1); 
 		switch( status ){
 			case osOK:
 				data = msg;

@@ -1,7 +1,7 @@
 #include "main.h"
 #include "prj.h"
-#include "uart_drv.h"
 #include <string.h>
+#include <uart_drvsmpl.h>
 
 //
 
@@ -37,8 +37,6 @@ void UART_create( T_UART_MAN *ptuartman )
 	uartmanp++;
 
 	AfifoInit(&ptuartman->rxfifo,ptuartman->rxbuftop,ptuartman->rxbuf_sz );
-	AfifoInit(&ptuartman->txfifo,ptuartman->txbuftop,ptuartman->txbuf_sz );
-
 
 	ptuartman->flg_snd = 0;
 	ptuartman->rxp = 0;
@@ -61,7 +59,7 @@ uint8_t UART_clr_error( T_UART_MAN *ptuartman)
 			__HAL_UART_GET_FLAG(ptuartman->phuart, UART_FLAG_NE) ||
 			__HAL_UART_GET_FLAG(ptuartman->phuart, UART_FLAG_FE) ||
 			__HAL_UART_GET_FLAG(ptuartman->phuart, UART_FLAG_PE) ){
-		volatile uint8_t dummy1,dummy2;
+//		volatile uint8_t dummy1,dummy2;
 
 		if( __HAL_UART_GET_FLAG(ptuartman->phuart, UART_FLAG_ORE)){
 			uart_err_cnt[0]++;
@@ -76,12 +74,14 @@ uint8_t UART_clr_error( T_UART_MAN *ptuartman)
 			uart_err_cnt[3]++;
 		}
 		__disable_irq();
+#if 0
 #if 0  // STM32FL0 seriesee
 		dummy1 = ptuartman->phuart->Instance->ISR;
 		dummy2 = ptuartman->phuart->Instance->RDR;
 #else	// STM32F4 seriese
 		dummy1 = ptuartman->phuart->Instance->ISR; // <-SR
 		dummy2 = ptuartman->phuart->Instance->RDR; // <-DR
+#endif
 #endif
 		HAL_UART_Abort(ptuartman->phuart);
 		HAL_UART_Receive_IT(ptuartman->phuart,&ptuartman->rc,1);
@@ -128,107 +128,55 @@ uint8_t UART_rcv( T_UART_MAN *ptuartman,char *ch )
 }
 
 
-// send 1char from fifo buffer
-uint8_t tx1char(T_UART_MAN *ptuartman )
-{
-	HAL_StatusTypeDef halstat;
-	uint8_t ret = UART_OK;
-	bool boo;  
-	boo = AfifoGet(&ptuartman->txfifo,&ptuartman->tc);
-	if(boo == true){
-	  	halstat = HAL_UART_Transmit_IT( ptuartman->phuart,&ptuartman->tc,1);
-		if(halstat == HAL_OK){
-			ptuartman->flg_snd = 1;
-			ret = UART_OK;
-		}else{
-			errcnt++;
-			ret = UART_ERR;
-		}
-	}
-	return ret;
-}
-
-uint8_t UART_putc(T_UART_MAN *ptuartman,char d )
-{
-	bool boo;
-	uint8_t ret;
-	__disable_irq();
-
-	if(UART_isSending(ptuartman) == 0 ){	//送信中でなければ
-		boo = AfifoPut(&ptuartman->txfifo,d );
-		if(	ptuartman->tr485sta_job != NULL ){
-			ptuartman->tr485sta_job();
-		}
-
-		tx1char(ptuartman);
-		ret = UART_OK;
-	}else{
-		boo = AfifoPut(&ptuartman->txfifo,d );
-		if(boo==true){
-			ret = UART_OK;
-		}else{
-			ret = UART_ERR;
-		}
-	}
-	__enable_irq();
-	return ret;
-}
 
 /*
  * 文字列の送信
  * char *str 送信文字列
  *
  */
-uint8_t UART_puts( T_UART_MAN *ptuartman,char * str ,uint32_t timeout)
+uint8_t UART_puts( T_UART_MAN *ptuartman,char * str )
 {
+	HAL_StatusTypeDef halstat;
 	uint8_t ret;
-	while(*str){
-		ret = UART_putc(ptuartman,*str );
-		if(ret == UART_OK){
-			str++;
-		}else{
-#ifdef _CMSIS_OS_H
-			osDelay(1);
-#else
-			HAL_Delay(1);
-#endif
-			timeout--;
-			if(timeout==0){
-				ret = UART_ERR;
-				break;
-			}
+	int len;
+
+	ret = UART_isSending(ptuartman);
+	if( ret == 0 ){
+		if(	ptuartman->tr485sta_job != NULL ){
+			ptuartman->tr485sta_job();
 		}
-
+		len = strlen(str);
+		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,str,len);
+		if(halstat == HAL_OK){
+			ptuartman->flg_snd = 1;
+			ret = UART_OK;
+		}
 	}
-
 	return ret;
 }
+
+
+
 /*
  * 指定文字数の送信
  * uint8_t *data  送信文字数 (バイト)
  * uint32_t len
  *
  */
-uint8_t UART_nputs( T_UART_MAN *ptuartman,char *data , uint32_t len ,uint32_t timeout)
+uint8_t UART_nputs( T_UART_MAN *ptuartman,char *data , uint32_t len)
 {
+	HAL_StatusTypeDef halstat;
 	uint8_t ret;
 
-	while(len){
-		ret = UART_putc(ptuartman,*data );
-		if(ret == UART_OK){
-			data++;
-			len--;
-		}else{
-#ifdef _CMSIS_OS_H
-			osDelay(1);
-#else
-			HAL_Delay(1);
-#endif
-			timeout--;
-			if(timeout==0){
-				ret = UART_ERR;
-				break;
-			}
+	ret = UART_isSending(ptuartman);
+	if( ret == 0){
+		if(	ptuartman->tr485sta_job != NULL ){
+			ptuartman->tr485sta_job();
+		}
+		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,data,len);
+		if(halstat == HAL_OK){
+			ptuartman->flg_snd = 1;
+			ret = UART_OK;
 		}
 	}
 	return ret;
@@ -241,33 +189,19 @@ uint8_t UART_isSending(  T_UART_MAN *ptuartman )
 
 
 
+
 /**
   * @brief  Tx Half Transfer completed callback.
   * @param  huart UART handle.
   * @retval None
   */
-
-
-void HAL_UART_TxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-	for(int i=0;i<uartmanp;i++){
-		if(huart == uartman[i]->phuart ){
-			break;	//一度ヒットしたらループから抜ける
-		}
-	}
-}
-
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
 	for(int i=0;i<uartmanp;i++){
 		if(huart == uartman[i]->phuart ){
-			if(AfifoCount(&uartman[i]->txfifo)){
-				tx1char(uartman[i]);
-			}else{
-				uartman[i]->flg_snd = 0;
-				if(	uartman[i]->tr485fin_job != NULL ){
-					uartman[i]->tr485fin_job();
-				}
+			uartman[i]->flg_snd = 0;
+			if(	uartman[i]->tr485fin_job != NULL ){
+				uartman[i]->tr485fin_job();
 			}
 			break;	//一度ヒットしたらループから抜ける
 		}

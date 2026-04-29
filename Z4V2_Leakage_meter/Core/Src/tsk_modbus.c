@@ -5,6 +5,7 @@
  *      Author: ysuga
  */
 
+ 
 #include "prj.h"
 
 
@@ -15,9 +16,7 @@ static void uart_init(void);
 
 T_UART_MAN tUartRs485;
 #define UartRs485RXBUF_SZ 270
-static char UartRs485_rxbuf[UartRs485RXBUF_SZ];
-#define UartRs485TX3BUF_SZ 270
-static char UartRs485_tx3buf[UartRs485TX3BUF_SZ];
+static uint8_t UartRs485_rxbuf[UartRs485RXBUF_SZ];
 
 extern uint16_t CRC_calc(uint8_t *nData, uint16_t wLength);
 
@@ -25,7 +24,7 @@ extern uint16_t CRC_calc(uint8_t *nData, uint16_t wLength);
 // prottype
 void tsk_rs485(void);
 static void uart_init(void);
-void modbus_slave(void);
+void tsk_modbus_slave(void);
 void MODBUS_init(void);
 int MODBUSrtu_slave_job(void);
 static int analyze_modbus_rtu(uint8_t rcv[], uint16_t len);
@@ -53,11 +52,11 @@ void tsk_modbus_slave( void )
 
 
 static void uart_init(void) {
+  UART_init();
+
 	tUartRs485.phuart = &huart3;
 	tUartRs485.rxbuftop = UartRs485_rxbuf;
 	tUartRs485.rxbuf_sz = sizeof(UartRs485_rxbuf);
-	tUartRs485.txbuftop = UartRs485_tx3buf;
-	tUartRs485.txbuf_sz = sizeof(UartRs485_tx3buf);
 	UART_create(&tUartRs485);
 }
 
@@ -104,10 +103,6 @@ static void uart_init(void) {
 #define MODBUS_FUNC_WRITE_1_LEN 8
 #define MODBUS_FUNC_ECOHBACK_LEN 8
 
-char log485[100];
-char log4852[101];
-int16_t log485p = 0;
-
 typedef struct {
 	// modbus 通信制御
 	uint8_t mode;
@@ -117,7 +112,7 @@ typedef struct {
 	uint16_t txcnt;
 
 	//
-	uint16_t address;
+//	uint16_t address;
 	uint16_t num;
 	uint16_t bytenum;
 	uint16_t data[128];
@@ -143,17 +138,6 @@ int16_t MDBS_set_reg_rsv[16];
 
 
 
-void modbus_slave(void)
-{
-	osDelay(4500);
-	MODBUS_init();
-	memset(MDBS_set_reg_com,0,sizeof(MDBS_set_reg_com));
-	memset(MDBS_set_reg_rcv,0,sizeof(MDBS_set_reg_rcv));
-	memset(MDBS_set_reg_rsv,0,sizeof(MDBS_set_reg_rsv));
-
-	tModBus.silent_limmit = 10;
-	MODBUSrtu_slave_job();
-}
 
 void MODBUS_init(void) {
 	tModBus.mode = XPMODE_WAIT;
@@ -167,8 +151,20 @@ void MODBUS_init(void) {
 		tUartRs485.phuart->Instance->BRR = 1250; //38400bps		
 	}
 */
+
+	memset(MDBS_set_reg_com,0,sizeof(MDBS_set_reg_com));
+	memset(MDBS_set_reg_rcv,0,sizeof(MDBS_set_reg_rcv));
+	memset(MDBS_set_reg_rsv,0,sizeof(MDBS_set_reg_rsv));
+
+	tModBus.silent_limmit = 10;
+	g_sys.modbus_slave_address = 10;
 }
 
+
+
+/// @brief MODBUS RTUスレーブのメインループ。MODBUS RTUパケットの受信と解析を行う。
+/// @param  なし
+/// @return なし:無限ループ関数
 int MODBUSrtu_slave_job(void) 
 {
 	uint32_t interval = 0;
@@ -176,10 +172,10 @@ int MODBUSrtu_slave_job(void)
 	char c;
 
 	for (;;) {
-		osDelay(1); //最大 1mSec待ち。実際はUART受信待ちでほとんどここで待つことになる。
+ 
 		if (UART_rcv(&tUartRs485, &c) == UART_OK) {
+PORT_TGL(TP8);
 			interval = 0;
-			log4852[log485p] = 0x00;
 
 			switch (tModBus.mode) {
 			case XPMODE_WAIT:
@@ -197,12 +193,9 @@ int MODBUSrtu_slave_job(void)
 				}
 				break;
 			}
-			if (log485p < 100) {
-				log485[log485p] = c;
-				log485p++;
-			}
 
 		} else {
+			osDelay(1); //最大 1mSec待ち。実際はUART受信待ちでほとんどここで待つことになる。
 			if (interval < 1000) {
 				interval++;
 			}
@@ -211,7 +204,6 @@ int MODBUSrtu_slave_job(void)
 				break;
 			case XPMODE_RECIEVING:
 				if (interval >= 2) { //受信完了
-					log4852[log485p - 1] = 0xFF;
 					ret = analyze_modbus_rtu(tModBus.rcvbuf, tModBus.rcvbufp);
 					tModBus.mode = XPMODE_WAIT;
 					tModBus.rcvbufp = 0;
@@ -229,24 +221,19 @@ int MODBUSrtu_slave_job(void)
 			default:
 				break;
 			}
-
 		}
 	}
 
 	return ret;
 }
 
-/**********************************************************
- MODBUS通信の受信処理
- 受信バッファの先頭からMODBUSのパケットかどうかを順次見ていって
- 正しいデータがとれていたら、そこを先頭として、
- 解析→実行をする。
 
- 返り値
- 0:パケット受信なし
- 1:パケット受信成功
- **********************************************************/
-static int analyze_modbus_rtu(uint8_t *pub, uint16_t len) {
+
+ /// @brief MODBUS RTUパケットの解析
+ /// @param pub 受信チャンクの先頭アドレス
+ /// @param len 受信チャンクの文字数
+ /// @return  0:パケット受信なし 1:パケット受信成功
+ static int analyze_modbus_rtu(uint8_t *pub, uint16_t len) {
 	uint16_t crc1, crc2;
 	uint16_t bytenum;
 	uint8_t *ptop;
@@ -372,14 +359,12 @@ static int analyze_modbus_rtu(uint8_t *pub, uint16_t len) {
 		 tslp_tsk( tRemote.respdelay*10 );
 		 }
 		 */
-		osDelay(2);
+		//osDelay(2);
 
-		UART_nputs(&tUartRs485, (char*) tModBus.txbuf, tModBus.txcnt, 1000);
-		while (UART_isSending(&tUartRs485)) {
+		UART_nputs(&tUartRs485, (char*) tModBus.txbuf, tModBus.txcnt);
+		while( UART_isSending(&tUartRs485)  ){
 			osDelay(1);
 		}
-		osDelay(1);
-
 	}
 	return 1;
 	err:
@@ -432,12 +417,12 @@ static void sub_func_read_n(uint8_t rcv[]) {
 
 	ptr = 0;
 	sz = 0;
-	tModBus.address = get_uword_be(&rcv[sz + 2]);
+	tModBus.slave_add = get_uword_be(&rcv[sz + 2]);
 	tModBus.num = get_uword_be(&rcv[sz + 4]);
 
 	if (tModBus.num >= 255)
 		goto err;
-	add = tModBus.address;
+	add = tModBus.slave_add;
 	num = tModBus.num;
 
 	tModBus.txbuf[ptr] = rcv[ptr];
@@ -476,7 +461,7 @@ static void sub_func_write_n(uint8_t rcv[]) {
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//function code
 
-	tModBus.address = get_uword_be(&rcv[ptr]);
+	tModBus.slave_add = get_uword_be(&rcv[ptr]);
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//start address u
 	tModBus.txbuf[ptr] = rcv[ptr];
@@ -495,7 +480,7 @@ static void sub_func_write_n(uint8_t rcv[]) {
 		make_err_code(EXCEPTION_CODE_UNACCEPTABLE_DATA, rcv);
 		goto err;
 	}
-	add = tModBus.address;
+	add = tModBus.slave_add;
 	for (i = 0; i < tModBus.num; i++) {
 		tModBus.data[i] = get_uword_be(&rcv[ptr]);
 		ptr += 2;
@@ -515,15 +500,15 @@ static void sub_func_write_1(uint8_t rcv[]) {
 	ptr++;	//slave address
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//function code
-	tModBus.address = get_uword_be(&rcv[ptr]);
+	tModBus.slave_add = get_uword_be(&rcv[ptr]);
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//start address u
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//start address l
 
 	tModBus.data[0] = get_uword_be(&rcv[ptr]);
-	MODBUS_set_reg(tModBus.address, tModBus.data[0]);
-	rslt = MODBUS_get_reg(tModBus.address, &val);
+	MODBUS_set_reg(tModBus.slave_add, tModBus.data[0]);
+	rslt = MODBUS_get_reg(tModBus.slave_add, &val);
 	if (rslt == EXCEPTION_CODE_OK) {
 		put_uword_be(&tModBus.txbuf[ptr], val);
 		ptr += 2;

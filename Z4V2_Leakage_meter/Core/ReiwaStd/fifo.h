@@ -27,7 +27,7 @@ typedef struct {
 	uint16_t	count;
 }FIFO;
 
-extern uint8_t		*AfifoVer( void );
+extern const char		*AfifoVer( void );
 extern void 		AfifoInit( FIFO *pFifo, uint8_t *pBuf, uint16_t size );
 extern uint16_t 	AfifoCount( FIFO * );
 extern bool		AfifoIns( FIFO *, uint8_t );

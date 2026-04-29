@@ -235,8 +235,8 @@
 int MODBUS_set_reg(uint16_t add, int16_t data) 
 {
 	int ret = EXCEPTION_CODE_OK;
-	int a,b;
-	int sadd;
+//	int a,b;
+//	int sadd;
 
 
   switch(add){
@@ -250,6 +250,7 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 	return ret;
 }
 
+static uint16_t dummycnt = 0;
 /// @brief modbus readのとき、add番地の値をvalに入れる
 /// @param add 
 /// @param val 
@@ -257,15 +258,17 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 int MODBUS_get_reg(uint16_t add, int16_t *val) 
 {
 	int ret = EXCEPTION_CODE_OK;
-	int a,b;
-	int sadd;
+//	int a,b;
+//	int sadd;
 
 	switch( add ){
     case 0x0000:
       *val = g_sys.dip_sw;
       break;
 		default:
-				ret = EXCEPTION_CODE_ILLIGAL_ADDRESS;
+//				ret = EXCEPTION_CODE_ILLIGAL_ADDRESS;
+      *val = dummycnt++;
+
 		break;
 	}
 	return ret;

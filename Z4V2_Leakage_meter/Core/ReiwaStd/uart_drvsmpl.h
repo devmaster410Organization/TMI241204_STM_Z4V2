@@ -1,9 +1,12 @@
 /*
- * uart2_drv.h Ver.2.0.0
+ * uart2_drv.h Ver.2.1.0
  *
  *  Created on: 2020/07/05
+ *  modified on: 2026/04/29　simple版にする。送信時に送信中だった場合にはFIFOに入れていたが・やめにする。送信FIFOはなし
+ * 
  *      Author: ysugawara
  */
+
 
 
 /*
@@ -27,8 +30,6 @@ typedef struct {
 	uint8_t *rxbuftop;
 	uint32_t rxbuf_sz;
 
-	uint8_t *txbuftop;
-	uint32_t txbuf_sz;
 
 	//---------- work memory
 	FIFO txfifo;
@@ -37,7 +38,6 @@ typedef struct {
 	uint8_t tc;
 	uint32_t rxp;
 	volatile	uint8_t flg_snd;
-
     void (*tr485sta_job)(void);
     void (*tr485fin_job)(void);
 
@@ -51,9 +51,8 @@ void UART_set_485( T_UART_MAN *ptuartman ,  void (*tr485sta_job)(void),void (*tr
 uint8_t UART_clr_error( T_UART_MAN *ptuartman);
 uint8_t UART_rcv( T_UART_MAN *ptuartman,char *ch );
 uint8_t UART_putc( T_UART_MAN *ptuartman,char d);
-uint8_t UART_puts( T_UART_MAN *ptuartman,char * str ,uint32_t timeout);
-uint8_t UART_nputs( T_UART_MAN *ptuartman,char *data , uint32_t len ,uint32_t timeout);
-uint8_t UART_isSending( T_UART_MAN *ptuartman);
-
+uint8_t UART_puts( T_UART_MAN *ptuartman,char * str );
+uint8_t UART_nputs( T_UART_MAN *ptuartman,char *data , uint32_t len );
+uint8_t UART_isSending(  T_UART_MAN *ptuartman );
 
 #endif /* SRC_UART2_DRV_H_ */
