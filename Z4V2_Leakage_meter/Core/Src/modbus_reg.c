@@ -240,11 +240,59 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 
 
   switch(add){
-    case 0x0000:
-      g_sys.dip_sw = data;
+    case CMD_ADDR_OPERATION:
+      switch(data){
+        case CMD_DATA_RESET_ENERGY:
+        // 積算電力量のゼロリセット
+        // 本計測器には機能がないので 何もしない。 EXCEPTION_CODE_OK を返す。
+          break;
+        case CMD_DATA_GOTO_MEASURE:// 計測モードへ移行
+          g_sys.mode = MODE_MEASURE;
+            break;
+        case CMD_DATA_GOTO_SETTING:// 設定モードへ移行 
+          g_sys.mode = MODE_SETUP;
+          break;
+        case CMD_DATA_INIT_HISTORY:
+        // 計測履歴初期化
+          break;
+        case CMD_DATA_INIT_SETTINGS:
+        // 設定値初期化
+          break;
+        case CMD_DATA_INIT_ALL:
+        // 全初期化
+          break;
+        case CMD_DATA_INIT_ALARM:
+        // 警報履歴初期化
+          break;
+        case CMD_DATA_READ_VOLT_DIP_0:
+        // 瞬低ログデータ読出し (先頭へ移動)
+          break;
+        case CMD_DATA_READ_VOLT_DIP_1:
+        // 瞬低ログデータ読出し (ポインタを進める)              
+          break;
+        case CMD_DATA_READ_VOLT_DIP_2:
+        // 瞬低ログデータ読出し (消去して進める)
+          break;
+        case CMD_DATA_RESET_MAX:
+        // 各計測値最大値リセット
+          Calc_ResetMaxVoltValue();
+          Calc_ResetMaxLeakValue();
+          break;
+        case CMD_DATA_RESET_MIN:
+        // 各計測値最小値リセット     
+          Calc_ResetMinVoltValue();
+          Calc_ResetMinLeakValue();
+          break;
+        case CMD_DATA_SOFT_RESET:
+          NVIC_SystemReset(); // ソフトリセット (無応答になります)
+           break;                                                   
+       default:
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA;
+      }
       break;
+    
     default:
-    ret = EXCEPTION_CODE_ILLIGAL_ADDRESS;
+    ret = EXCEPTION_CODE_ILLEGAL_ADDRESS;
       break;
   }
 	return ret;

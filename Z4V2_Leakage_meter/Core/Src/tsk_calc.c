@@ -39,6 +39,7 @@ typedef struct {
   uint32_t osMessageGetCount;
   uint32_t osMessageGetTimeoutCount;
   uint32_t adc1_callback_count;
+  uint32_t adc1_callback_count_last;
   uint32_t sdadc1_callback_count;
   uint32_t adc2_callback_count;
   uint32_t error_sample_buf_overrun_count;
@@ -47,6 +48,8 @@ typedef struct {
   uint8_t st_sample_buf_index;
   Leak1Hz_5060 leak1hz_t[ADC2_CH_NUM];
   float out_ma[ADC2_CH_NUM];
+  float out_ma_max[ADC2_CH_NUM];
+  float out_ma_min[ADC2_CH_NUM];
 
 } st_sampling_cb;
 
@@ -65,7 +68,6 @@ float Calculate_Vdda(uint32_t vrefint_adc_raw);
 float Calculate_Temperature(uint32_t ts_adc_raw, float vdda) ;
 void Process_ADC_Values( void );
 void put_adc_all_queue( void );
-static void calc_adc( uint16_t adsel,uint16_t adc_value );
 
 
 
@@ -75,6 +77,7 @@ volatile uint8_t idxx;
 void tsk_calc( void )
 {
 	uint8_t idx;
+  g_sys.mode = MODE_MEASURE;
 	init_sample_buf();
   Culc_vol_init();  //vol
 	Start_ADC_DMA();
@@ -102,7 +105,10 @@ void tsk_calc( void )
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,2.690710247E-4,0.30f, 0.10f, 0.995f, 1.30f );
 	
 	for(;;){
-    Process_ADC_Values( );
+    if( sampling_t.adc1_callback_count_last != sampling_t.adc1_callback_count ){
+      sampling_t.adc1_callback_count_last = sampling_t.adc1_callback_count;
+      Process_ADC_Values( );
+    }
 		sampling_t.osMessageGetCount++;
 
 		uint8_t msg_prio;
@@ -121,16 +127,17 @@ void tsk_calc( void )
 
         int16_t adcv[2] = { pbuf->buf[QSEL_IN1_CHANNEL], pbuf->buf[QSEL_IN2_CHANNEL] };
         Culc_vol( adcv );
-
+        
+/*
         rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
 				if(rslt == 1){
-				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
+  				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
 				}
 				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], &pbuf->buf[QSEL_IN2_CHANNEL], 1,&f);
 				if(rslt == 1){
 					sampling_t.out_ma[QSEL_IN2_CHANNEL] = f;
 				}
-
+*/
         rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
 					sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
@@ -173,43 +180,18 @@ static void init_sample_buf( void )
 }
 
 
-static void calc_adc( uint16_t sel,uint16_t adc_value )
+/// @brief 最小値の初期化
+/// @param  
+void Calc_ResetMinLeakValue(void)
 {
-  switch( sel ){
-    case QSEL_IN1_CHANNEL:  // ADCIN0
-        for(int i =0;i<1;i++){
-//            PORT_HI(TP8); PORT_LO(TP8);
-        } 
-
-      break;      
-    case QSEL_IN3_CHANNEL:  // ADCIN1
-        for(int i =0;i<2;i++){
-//            PORT_HI(TP8); PORT_LO(TP8);
-        } 
-      break;
-    case QSEL_IN4_CHANNEL: // ADCIN2
-        for(int i =0;i<2;i++){
-//            PORT_HI(TP8); PORT_LO(TP8);
-        } 
-      break;
-    case QSEL_IN12_CHANNEL:  //SDADC1 IN4
-        for(int i =0;i<4;i++){
-//            PORT_HI(TP8); PORT_LO(TP8);
-        } 
-      break;      
-    case QSEL_IN13_CHANNEL:  //SDADC1 IN5
-        for(int i =0;i<5;i++){
-//            PORT_HI(TP8); PORT_LO(TP8);
-        } 
-      break;
-    default:
-  
-  }
-
+}
+/// @brief 最大値の初期化
+/// @param  
+void Calc_ResetMaxLeakValue(void)
+{
 }
 
 // 例: TIM2=Master, TIM4=Slave とする
-
 static void Start_Capture_Synced(void)
 {
 	// --- 同期確保：両タイマのCNTをゼロ化 ---

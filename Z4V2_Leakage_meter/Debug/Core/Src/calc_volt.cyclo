@@ -1,9 +1,0 @@
-../Core/Src/calc_volt.c:40:7:CnvVolAbs	2
-../Core/Src/calc_volt.c:55:7:CnvVolBi	1
-../Core/Src/calc_volt.c:67:9:CnvAdcBi	1
-../Core/Src/calc_volt.c:77:6:Culc_vol_init	3
-../Core/Src/calc_volt.c:98:6:cnv_2ct3cur	1
-../Core/Src/calc_volt.c:111:6:adj_centor	7
-../Core/Src/calc_volt.c:144:5:culc_vol	4
-../Core/Src/calc_volt.c:167:5:Culc_vol	2
-../Core/Src/calc_volt.c:185:6:GetVValues	2

@@ -1,2 +1,0 @@
-../Core/Src/modbus_reg.c:235:5:MODBUS_set_reg	2
-../Core/Src/modbus_reg.c:258:5:MODBUS_get_reg	2

@@ -42,10 +42,10 @@
 
 // MOD BUS errコード
 #define EXCEPTION_CODE_OK 0x00
-#define	EXCEPTION_CODE_ILLIGAL_FUNCTION 0x01
-#define EXCEPTION_CODE_ILLIGAL_ADDRESS 0x02
-#define EXCEPTION_CODE_UNACCEPTABLE_DATA 0x03
-#define ERRCODE_04_DOSA_ERR 0x04
+#define	EXCEPTION_CODE_ILLEGAL_FUNCTION 0x01    //定義されていないファンクションコードが指定された場合
+#define EXCEPTION_CODE_ILLEGAL_ADDRESS 0x02 //指定されたアドレスが有効な範囲外の場合
+#define EXCEPTION_CODE_UNACCEPTABLE_DATA 0x03   //指定されたデータ値が有効な範囲外の場合    
+#define EXCEPTION_CODE_SERVER_DEVICE_FAILURE 0x04   //サーバー側の機器障害などで要求を処理できない場合
 
 // MOD BUS ファンクションコードのパケット長
 //#define MODBUS_FUNC_READ_N_LEN  (MBTCP_HEADER_SZ+6)

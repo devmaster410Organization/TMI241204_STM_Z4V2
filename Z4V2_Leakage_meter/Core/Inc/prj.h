@@ -68,16 +68,34 @@ void tsk_modbus_slave( void );
 void GetADCRawValues( uint16_t *adc1_values,int num);
 void GetVZValues( float *adc1_values,int num);
 
+typedef enum{
+    MODE_MEASURE = 0,
+    MODE_SETUP,
+}mode_t;
 
 typedef struct{
     uint8_t dip_sw;
     uint8_t setup_update;
     uint8_t modbus_slave_address;
+    mode_t mode;
 }sys_t;
 extern sys_t g_sys;
 
 extern osMessageQId queue_USBHandle;
 extern osMessageQId queue_ADCHandle;
+
+// queue_USBHandle message format (16bit): [15:8]=source id, [7:0]=payload byte
+#define USBMSG_SRC_USB     (0x01U)
+#define USBMSG_PACK(src,ch)  ((uint16_t)((((uint16_t)(src) & 0xFFU) << 8) | ((uint16_t)(ch) & 0x00FFU)))
+#define USBMSG_GET_SRC(msg)  ((uint8_t)((((uint16_t)(msg)) >> 8) & 0xFFU))
+#define USBMSG_GET_CHAR(msg) ((uint8_t)(((uint16_t)(msg)) & 0x00FFU))
+
+
+
+#define KE1_MIN_VOL 99999.9f
+#define KE1_MAX_VOL 0.0f
+
+
 
 #define QSEL_IN1_CHANNEL   0x0000
 #define QSEL_IN2_CHANNEL   0x0001
@@ -88,6 +106,12 @@ extern osMessageQId queue_ADCHandle;
 #define QSEL_TEMP_CHANNEL   0x0006
 #define QSEL_VREF_CHANNEL   0x0007
 #define QSEL_VBAT_CHANNEL   0x0008
+
+
+
+
+
+
 
 
 #include "calc_leak.h"

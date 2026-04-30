@@ -53,15 +53,15 @@ USB_CONTROL_BLOCK usbcb;
 
 
 /// @brief
-/// @param timeout  QueTimeout in msec
+/// @param timeout  Queue timeout in RTOS ticks
 /// @return 0xFFFF:timeout 0x0000-0x00FF:received data
 uint16_t usbGetChar( uint32_t timeout )
 {
    uint16_t data ;
    if( USB_RCV_TIMEOUT_CODE == usbcb.ungetdata ){
 		uint8_t msg_prio;
-		uint8_t msg;
-		osStatus_t status = osMessageQueueGet(queue_USBHandle,&msg,&msg_prio,1); 
+		uint16_t msg;
+		osStatus_t status = osMessageQueueGet(queue_USBHandle,&msg,&msg_prio,timeout);
 		switch( status ){
 			case osOK:
 				data = msg;
@@ -116,17 +116,20 @@ void tsk_usb( void )
 //		HAL_USB_GetState(&hUsbDeviceFS); // USBの状態を確認
         rcvdata = usbGetChar(USB_RCV_TIMEOUT);
         if (rcvdata != USB_RCV_TIMEOUT_CODE) {
-            key = rcvdata;
+            if (USBMSG_GET_SRC(rcvdata) != USBMSG_SRC_USB) {
+                continue;
+            }
+            key = (char)USBMSG_GET_CHAR(rcvdata);
             usbcb.rcvtimeout = 0;	// reset timeout
             if (usbcb.rcvbufp < USB_RCV_BUFSIZE) {
                 if (key == 0x0D || key == 0x0A) { // CR or LF
 					usbEchoBack(key);
 					rcvdata = usbGetChar( 1 );
-					key = rcvdata;
 					if( rcvdata == USB_RCV_TIMEOUT_CODE ){
 						// timeout, do nothing
-					} else if( key == 0x0D || key == 0x0A ){ // CR or LF
-						key = rcvdata; // CR or LF
+					} else if( (USBMSG_GET_SRC(rcvdata) == USBMSG_SRC_USB) &&
+							   ((USBMSG_GET_CHAR(rcvdata) == 0x0D) || (USBMSG_GET_CHAR(rcvdata) == 0x0A)) ){ // CR or LF
+						key = (char)USBMSG_GET_CHAR(rcvdata);
 						usbEchoBack(key);
 					}else{
 						usbUngetChar( rcvdata ); // unget

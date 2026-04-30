@@ -13,5 +13,12 @@ int32_t CnvAdcBi( float fcur , float timsec );
 void Culc_vol_init(void);
 int Culc_vol( int16_t *data_ac);
 void GetVValues( float *v,int num );
+void Calc_ResetMinVoltValue(void);
+void Calc_ResetMaxVoltValue(void);
+
+void GetVMaxValues( float *v,int num )
+void GetVMinValues( float *v,int num )
+
+v
 
 #endif /* INC_CALC_VOLT_H_ */

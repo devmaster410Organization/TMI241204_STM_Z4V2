@@ -29,6 +29,7 @@
 /* Private typedef -----------------------------------------------------------*/
 typedef StaticTask_t osStaticThreadDef_t;
 typedef StaticQueue_t osStaticMessageQDef_t;
+typedef StaticSemaphore_t osStaticSemaphoreDef_t;
 /* USER CODE BEGIN PTD */
 
 /* USER CODE END PTD */
@@ -130,6 +131,14 @@ const osMessageQueueAttr_t queue_USB_attributes = {
   .mq_mem = &queue_USBBuffer,
   .mq_size = sizeof(queue_USBBuffer)
 };
+/* Definitions for binSem_Flash */
+osSemaphoreId_t binSem_FlashHandle;
+osStaticSemaphoreDef_t binSem_ControlBlock;
+const osSemaphoreAttr_t binSem_Flash_attributes = {
+  .name = "binSem_Flash",
+  .cb_mem = &binSem_ControlBlock,
+  .cb_size = sizeof(binSem_ControlBlock),
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -212,6 +221,10 @@ int main(void)
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
+
+  /* Create the semaphores(s) */
+  /* creation of binSem_Flash */
+  binSem_FlashHandle = osSemaphoreNew(1, 1, &binSem_Flash_attributes);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */

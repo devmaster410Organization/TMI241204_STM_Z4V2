@@ -9,6 +9,7 @@
 
 
 
+
 typedef struct{
 	uint16_t sec_cnt;	// 1秒カウント
 
@@ -19,12 +20,12 @@ typedef struct{
 	uint16_t adc_total_seccnt;
 	float adc_total[3];
 	float vol[3];
-
+	float max_vol[3];
+	float min_vol[3];
 	uint8_t cur_max_send_flg;	// 0: not send, 1: send
 	uint8_t adc_center_first_flg;
 
 }T_AC;
-T_AC	tAc;
 
 
 
@@ -87,7 +88,12 @@ void Culc_vol_init(void)
 		tAc.adc_total[j] = 0;
 		tAc.vol[j] = 0.0f;
 	}
-
+	tAc.vol_max[0] = KE1_MAX_VOL;
+	tAc.vol_max[1] = KE1_MAX_VOL;	
+	tAc.vol_max[2] = KE1_MAX_VOL;
+	tAc.vol_min[0] = KE1_MIN_VOL;		
+	tAc.vol_min[1] = KE1_MIN_VOL;
+	tAc.vol_min[2] = KE1_MIN_VOL;
 }
 
 
@@ -154,6 +160,12 @@ int culc_vol( float *cur )
 		for(int i = 0;i<3;i++){
 			tAc.vol[i] = CnvVolAbs( tAc.adc_total[i], 1.0 );
 			tAc.adc_total[i] = 0;
+			if(tAc.vol[i] > tAc.vol_max[i]){
+				tAc.vol_max[i] = tAc.vol[i];
+			}
+			if(tAc.vol[i] < tAc.vol_min[i]){
+				tAc.vol_min[i] = tAc.vol[i];
+			}
 		}
 	}
 	
@@ -188,3 +200,37 @@ void GetVValues( float *v,int num )
 		v[i] = tAc.vol[i];
 	}
 }
+
+void GetVMaxValues( float *v,int num )
+{
+	for(int i = 0;i<num;i++){
+		v[i] = tAc.vol_max[i];
+	}
+}
+
+void GetVMinValues( float *v,int num )
+{
+	for(int i = 0;i<num;i++){
+		v[i] = tAc.vol_min[i];
+	}
+}		
+
+
+/// @brief 最小値の初期化
+/// @param  
+void Calc_ResetMinVoltValue(void)
+{
+	for(int j = 0;j<3;j++){
+		tAc.vol_min[j] = KE1_MIN_VOL;
+	}
+}
+/// @brief 最大値の初期化
+/// @param  
+void Calc_ResetMaxVoltValue(void)
+{
+	for(int j = 0;j<3;j++){
+		tAc.vol_max[j] = KE1_MAX_VOL;
+	}
+}
+
+

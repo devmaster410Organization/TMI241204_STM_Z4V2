@@ -268,7 +268,9 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   osStatus result ;
   for(int i = 0;i < *Len;i++){
-    result = osMessageQueuePut(queue_USBHandle, &Buf[i], 0, 0); // timeout 0
+    
+    uint16_t qmsg = USBMSG_PACK(USBMSG_SRC_USB, Buf[i]);
+    result = osMessageQueuePut(queue_USBHandle, &qmsg, 0, 0); // timeout 0
     if( result != osOK){
       break;
     }
