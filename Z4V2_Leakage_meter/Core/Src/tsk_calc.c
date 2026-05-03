@@ -7,51 +7,7 @@
 #include "prj.h"
 #include "stm32g4xx_ll_adc.h"
 
-#define FS_HZ          3600 // Sampling frequency is 1800hz
-#define FRAME_SAMPLES  1   // 
 
-#define ADC1_CH_NUM 3 // temp, vbat, vref
-#define ADC2_CH_NUM 6 // ADCIN1,2,3,4,5,6
-
-typedef struct{
-  uint16_t en;
-  int16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)];
-} st_sample_buf;
-
-
-#define SAMPLE_INDEX_MAX 12 // uint8_t の変数に入れるので最大255
-typedef struct {
-  /* ADC1: IN0..IN3 (4ch scan) */
-  uint16_t adc1_buf[FRAME_SAMPLES * ADC1_CH_NUM ];
-
-  int16_t adc2_buf[FRAME_SAMPLES * ADC2_CH_NUM ];
-
-  HAL_StatusTypeDef hal_status_adc[4];
-  osStatus osMessagePutStat;
-
-  float current_vdda ;
-  float current_temp ;
-  float current_vbat ;
-
-    // ... 既存のメンバ ...
-  uint32_t  osMessagePutCount;
-  uint32_t osMessagePutErrorCount;
-  uint32_t osMessageGetCount;
-  uint32_t osMessageGetTimeoutCount;
-  uint32_t adc1_callback_count;
-  uint32_t adc1_callback_count_last;
-  uint32_t sdadc1_callback_count;
-  uint32_t adc2_callback_count;
-  uint32_t error_sample_buf_overrun_count;
-
-  st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
-  uint8_t st_sample_buf_index;
-  Leak1Hz_5060 leak1hz_t[ADC2_CH_NUM];
-  float out_ma[ADC2_CH_NUM];
-  float out_ma_max[ADC2_CH_NUM];
-  float out_ma_min[ADC2_CH_NUM];
-
-} st_sampling_cb;
 
 st_sampling_cb sampling_t;
 
@@ -82,8 +38,9 @@ void tsk_calc( void )
   Culc_vol_init();  //vol
 	Start_ADC_DMA();
 	Start_Capture_Synced();
- 	HAL_TIM_Base_Start_IT(&htim3);  // 1mSec タイマー
   HAL_TIM_Base_Start(&htim15);  // 10uSec カウンター
+  sampling_t.v0_cycle_time = 0;
+
 	sampling_t.hal_status_adc[0] = HAL_OK;
   sampling_t.hal_status_adc[1] = HAL_OK;
   sampling_t.hal_status_adc[2] = HAL_OK;
@@ -205,7 +162,8 @@ static void Start_Capture_Synced(void)
 	// --- 割り込み禁止で同時スタート（Slave → Master順） ---
 	__disable_irq();
 	HAL_TIM_Base_Start(&htim4);  // Slave start
-	HAL_TIM_Base_Start(&htim2);  // Master start -> TRGOでSlaveが同期
+	HAL_TIM_Base_Start(&htim2);  // Slave start
+ 	HAL_TIM_Base_Start(&htim3);  // マスタータイマー
 	__enable_irq();
 
 	// --- Input Capture開始（Slave → Master） ---
@@ -221,6 +179,120 @@ static void Start_Capture_Synced(void)
  
 
 
+
+#define NUM_VPH1 0
+#define NUM_LPH1 1 
+#define NUM_LPH2 2 
+#define NUM_LPH3 3 
+#define NUM_LPH4 4
+#define PHASE_NUM_MAX 5
+#define PHASE_REC_BUF_SIZE 10
+#define GPIO_UNDEFINED 0x0002
+typedef struct {
+  uint16_t ccr;
+  uint16_t state; //  GPIO_PIN_RESET = 0U,  GPIO_PIN_SET  , GPIO_UNDEFINED  
+}phase_rec_t;
+
+
+typedef struct{
+  uint16_t wp;
+  phase_rec_t rec[PHASE_REC_BUF_SIZE];
+}phase_t;
+
+phase_t phase_[PHASE_NUM_MAX];
+
+
+
+/// @brief 位相管理初期化
+/// @param  なし
+void Pase_init( void )
+{
+  for (int i = 0; i < PHASE_NUM_MAX; i++) {
+    phase_[i].wp = 0;
+    for (int j = 0; j < PHASE_REC_BUF_SIZE; j++) {
+      phase_[i].rec[j].state = GPIO_UNDEFINED;
+    }
+  }
+}
+
+/// @brief 
+/// @param no 
+/// @param ccr 
+/// @param state 
+void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state )
+{
+  phase_t *pphase = &phase_[no];
+  pphase->rec[pphase->wp].ccr = ccr;
+  pphase->rec[pphase->wp].state = state;
+  pphase->wp++;
+  if( pphase->wp >= PHASE_REC_BUF_SIZE ) pphase->wp = 0;
+}
+
+
+uint16_t idx1_log[PHASE_REC_BUF_SIZE];
+uint16_t idx2_log[PHASE_REC_BUF_SIZE];
+
+/// @brief 
+/// @param no 
+/// @return cycletime 
+uint32_t Get_cycle_time( uint16_t no )
+{
+  phase_t *pphase = &phase_[no];
+  uint16_t wpcnt =0;
+  uint16_t cycle_time;
+
+  uint16_t idx1p = 0;
+  uint16_t idx2p = 0;
+  memset(idx1_log, 0xFF, sizeof(idx1_log));
+  memset(idx2_log, 0xFF, sizeof(idx2_log));
+
+
+  int idx1 = (pphase->wp + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
+
+  idx1_log[idx1p++] = idx1;
+
+  int idx2 = -1;
+
+  //seartch idx1 (last rising  edge)
+  while(wpcnt != PHASE_REC_BUF_SIZE){
+    if( pphase->rec[idx1].state ==  GPIO_PIN_SET ){
+      idx2 = (idx1 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
+  idx2_log[idx2p++] = idx2;
+
+      wpcnt++;
+      break;
+    }else if(pphase->rec[idx1].state ==  GPIO_UNDEFINED){
+      return 0xFFFFFFFF;//undefined
+    }
+    idx1 = (idx1 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
+
+  idx1_log[idx1p++] = idx1;
+
+
+    wpcnt++;
+  }
+  while(wpcnt != PHASE_REC_BUF_SIZE){
+    if( pphase->rec[idx2].state == GPIO_PIN_SET ){
+      break;
+    }else if(pphase->rec[idx2].state ==  GPIO_UNDEFINED){
+      return 0xFFFFFFFF;//undefined
+    }
+    idx2 = (idx2 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
+  idx2_log[idx2p++] = idx2;
+    wpcnt++;
+  }
+  if(wpcnt <= PHASE_REC_BUF_SIZE ){
+    cycle_time = pphase->rec[idx1].ccr - pphase->rec[idx2].ccr;
+  }else{
+      return 0xFFFFFFFF;//undefined
+  }
+  uint32_t ret = cycle_time;
+  return ret;
+}
+
+
+///
+
 uint16_t ccr_buf[10];
 
 uint16_t ccr_logp = 0;
@@ -228,27 +300,41 @@ uint16_t ccr_log[200];
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
+  GPIO_PinState pin_state;
+  uint16_t ccr_value;
+
   if (htim->Instance == TIM2)
   {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-    	ccr_buf[0] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      // ...
-    }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-    	ccr_buf[1]= HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {//VPH1
+      pin_state = PORT_READ( VPH1 );
+      ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      Phase_push_edge( NUM_VPH1, ccr_value, pin_state );
+      uint32_t rslt = Get_cycle_time( NUM_VPH1 );
+      if( rslt != 0xFFFFFFFF ){
+        sampling_t.v0_cycle_time = (uint16_t)rslt;
+        sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
+      }
+
+    }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1
+      pin_state = PORT_READ( LPH1 );
+    	ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      Phase_push_edge( NUM_LPH1, ccr_value, pin_state );
     }
-    // CH2/CH3/CH4...
   }
   else if (htim->Instance == TIM4)
   {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
-      ccr_buf[2] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      // ...
-    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
-      ccr_buf[3] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      // ...
-    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {
-      ccr_buf[4] = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
-      // ...
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {  //LPH2
+      pin_state = PORT_READ( LPH2 );
+      ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      Phase_push_edge( NUM_LPH2, ccr_value, pin_state );
+    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {  //LPH3
+      pin_state = PORT_READ( LPH3 );
+      ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      Phase_push_edge( NUM_LPH3, ccr_value, pin_state );     
+    }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {  //LPH4                                                                                                                                    
+      pin_state = PORT_READ( LPH4 );
+      ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
+      Phase_push_edge( NUM_LPH4, ccr_value, pin_state );
     }
  }
 }
@@ -500,4 +586,17 @@ void GetVZValues( float *adc_values,int num)
     for(int i =0;i<num;i++){
     	adc_values[i] = sampling_t.out_ma[i];
     }
+}
+
+uint16_t GetVCycle( void )
+{
+  return sampling_t.v0_cycle_time;
+}
+
+float GetVFreq( void )
+{
+  if( sampling_t.v0_cycle_time == 0 ){
+    return 0.0f;
+  }
+  return 1000000.0f / (float)sampling_t.v0_cycle_time;
 }

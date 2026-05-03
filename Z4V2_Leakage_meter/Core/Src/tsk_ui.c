@@ -12,6 +12,7 @@ typedef enum{
   UI_SHOW_VER,
   UI_SHOW_VALUE,
   UI_SHOW_ADC,
+  UI_SHOW_PHASE,
   UI_SHOW_SYSTEM
 }UI_Disp_enum;
 
@@ -30,6 +31,7 @@ const char *pVer = "v1.00 26.04.14";
 UI_Disp_enum ui_show_ver( void );
 UI_Disp_enum ui_show_adc( void );
 UI_Disp_enum ui_show_value( void );
+UI_Disp_enum ui_show_phase( void );
 UI_Disp_enum ui_show_system( void );
 
 
@@ -41,17 +43,21 @@ void tsk_ui( void )
   ChlcdCls();
   KEY_init();
   ui_t.disp = UI_SHOW_VER;
+ 	HAL_TIM_Base_Start_IT(&htim1);  // 1mSec タイマー (KeyScan用)
 
   for(;;){
     switch(ui_t.disp){
       case UI_SHOW_VER:
         ui_t.disp = ui_show_ver();
         break;
-      case UI_SHOW_ADC:
-        ui_t.disp = ui_show_adc();
-        break;
       case UI_SHOW_VALUE:      
           ui_t.disp = ui_show_value();
+        break;
+      case UI_SHOW_PHASE:
+        	ui_t.disp = ui_show_phase();
+        break;
+      case UI_SHOW_ADC:
+        ui_t.disp = ui_show_adc();
         break;
       case UI_SHOW_SYSTEM:
           ui_t.disp = ui_show_system();
@@ -92,7 +98,7 @@ UI_Disp_enum ui_show_adc( void )
 {
   bool done = false;
   uint16_t adc_values[ADC_NUM];
-  UI_Disp_enum uie = UI_SHOW_SYSTEM;
+  UI_Disp_enum uie = UI_SHOW_SYSTEM ;
   ChlcdCls();
   KEY_clr();
   while( done == false ){
@@ -130,7 +136,7 @@ UI_Disp_enum ui_show_adc( void )
 UI_Disp_enum ui_show_value( void )
 {
   bool done = false;
-  UI_Disp_enum uie = UI_SHOW_ADC;
+  UI_Disp_enum uie = UI_SHOW_PHASE;
   float fval[ADC_NUM];
 
   ChlcdCls();
@@ -166,6 +172,26 @@ UI_Disp_enum ui_show_value( void )
   return uie;
 }
 
+UI_Disp_enum ui_show_phase( void )
+{
+  bool done = false;
+  UI_Disp_enum uie = UI_SHOW_ADC;
+  ChlcdCls();
+  KEY_clr();
+  while( done == false ){
+      sprintf( (char*)lcd_str, "V0 Cycle:%5u", GetVCycle() );
+      ChlcdPrint( 0, 0, lcd_str );
+
+      sprintf( (char*)lcd_str, "V0 Freq:%6.3fHz", GetVFreq() );
+      ChlcdPrint( 0, 1, lcd_str );  
+    osDelay( 999 );
+    uint8_t keystat = KEY_pget();
+    if( keystat == (K_MODE|K_ON) ){
+      done = true;
+    }  
+  }
+  return uie;
+}
 
 
 /// @brief display system information
@@ -191,13 +217,16 @@ UI_Disp_enum ui_show_system( void )
     sprintf( (char*)lcd_str, "[%02X]", GetDsw());
     ChlcdPrint( 16, 0,lcd_str );
 
-    osDelay( 0 );
+    osDelay( 1 );
 
+
+    sprintf( (char*)lcd_str, "%ld ",(long)( __HAL_TIM_GET_COUNTER(&htim2) -__HAL_TIM_GET_COUNTER(&htim4)) );
+    ChlcdPrint( 0, 3,lcd_str );
 
     uint8_t keystat = KEY_pget();
     if( keystat  ){
       sprintf( (char*)lcd_str, "KEY:%02X", keystat );
-      ChlcdPrint( 10, 3, lcd_str );
+      ChlcdPrint( 13, 3, lcd_str );
 
       if( keystat == (K_MODE|K_ON) ){
         done = true;

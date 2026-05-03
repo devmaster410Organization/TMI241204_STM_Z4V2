@@ -20,12 +20,14 @@ typedef struct{
 	uint16_t adc_total_seccnt;
 	float adc_total[3];
 	float vol[3];
-	float max_vol[3];
-	float min_vol[3];
+	float vol_max[3];
+	float vol_min[3];
 	uint8_t cur_max_send_flg;	// 0: not send, 1: send
 	uint8_t adc_center_first_flg;
 
 }T_AC;
+
+static T_AC tAc;
 
 
 
@@ -89,9 +91,9 @@ void Culc_vol_init(void)
 		tAc.vol[j] = 0.0f;
 	}
 	tAc.vol_max[0] = KE1_MAX_VOL;
-	tAc.vol_max[1] = KE1_MAX_VOL;	
+	tAc.vol_max[1] = KE1_MAX_VOL;
 	tAc.vol_max[2] = KE1_MAX_VOL;
-	tAc.vol_min[0] = KE1_MIN_VOL;		
+	tAc.vol_min[0] = KE1_MIN_VOL;
 	tAc.vol_min[1] = KE1_MIN_VOL;
 	tAc.vol_min[2] = KE1_MIN_VOL;
 }
@@ -154,11 +156,11 @@ int culc_vol( float *cur )
 	for(int i = 0;i<3;i++){
 		tAc.adc_total[i] += fabsf(cur[i]);
 	}
-	if( tAc.adc_total_seccnt >= I32_ADC_HZ ){
+	if( tAc.adc_total_seccnt >= V_ADC_HZ ){
 		flg = 1;
 		tAc.adc_total_seccnt = 0;
 		for(int i = 0;i<3;i++){
-			tAc.vol[i] = CnvVolAbs( tAc.adc_total[i], 1.0 );
+			tAc.vol[i] = CnvVolAbs( tAc.adc_total[i], 0.1f	);	//0.1secで平均値をとる
 			tAc.adc_total[i] = 0;
 			if(tAc.vol[i] > tAc.vol_max[i]){
 				tAc.vol_max[i] = tAc.vol[i];

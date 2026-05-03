@@ -12,6 +12,10 @@
 #define I32_ADC_HZ ((int32_t)ADC_HZ)
 #define ADC_CYC	(1.0/ADC_HZ)
 
+#define V_ADC_HZ ((int32_t)ADC_HZ/10)
+#define V_ADC_CYC	(1.0/ADC_HZ)
+
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

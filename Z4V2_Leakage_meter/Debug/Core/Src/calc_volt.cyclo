@@ -1,0 +1,13 @@
+../Core/Src/calc_volt.c:43:7:CnvVolAbs	2
+../Core/Src/calc_volt.c:58:7:CnvVolBi	1
+../Core/Src/calc_volt.c:70:9:CnvAdcBi	1
+../Core/Src/calc_volt.c:80:6:Culc_vol_init	3
+../Core/Src/calc_volt.c:106:6:cnv_2ct3cur	1
+../Core/Src/calc_volt.c:119:6:adj_centor	7
+../Core/Src/calc_volt.c:152:5:culc_vol	6
+../Core/Src/calc_volt.c:181:5:Culc_vol	2
+../Core/Src/calc_volt.c:199:6:GetVValues	2
+../Core/Src/calc_volt.c:206:6:GetVMaxValues	2
+../Core/Src/calc_volt.c:213:6:GetVMinValues	2
+../Core/Src/calc_volt.c:223:6:Calc_ResetMinVoltValue	2
+../Core/Src/calc_volt.c:231:6:Calc_ResetMaxVoltValue	2

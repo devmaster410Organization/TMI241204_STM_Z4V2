@@ -1,0 +1,9 @@
+../Core/ReiwaStd/key.c:77:17:scan_port	5
+../Core/ReiwaStd/key.c:104:6:KeyScan	11
+../Core/ReiwaStd/key.c:174:9:KEY_get	2
+../Core/ReiwaStd/key.c:190:9:KEY_pget	2
+../Core/ReiwaStd/key.c:208:10:KEY_cnt	1
+../Core/ReiwaStd/key.c:219:6:KEY_clr	1
+../Core/ReiwaStd/key.c:231:6:KEY_init	3
+../Core/ReiwaStd/key.c:251:10:KEY_Port	4
+../Core/ReiwaStd/key.c:267:9:KEY_isPush	1

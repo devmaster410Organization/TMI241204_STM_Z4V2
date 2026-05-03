@@ -1,0 +1,2 @@
+../Core/Src/modbus_reg.c:321:5:MODBUS_set_reg	24
+../Core/Src/modbus_reg.c:392:5:MODBUS_get_reg	38

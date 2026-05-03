@@ -47,17 +47,32 @@ extern ADC_HandleTypeDef hadc2;
 extern DMA_HandleTypeDef hdma_adc1;
 extern DMA_HandleTypeDef hdma_adc2;
 
-extern CRC_HandleTypeDef hcrc;
+extern  CRC_HandleTypeDef hcrc;
 
-extern TIM_HandleTypeDef htim2; // Input Capture
-extern TIM_HandleTypeDef htim3;     
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim2;
+extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 extern TIM_HandleTypeDef htim7;
 extern TIM_HandleTypeDef htim8;
 extern TIM_HandleTypeDef htim15;
 
 extern UART_HandleTypeDef huart3;
-extern DMA_HandleTypeDef hdma_usart3_tx;
+
+
+
+
+
+
+
+
+#include "calc_leak.h"
+#include "calc_volt.h"
+
+
+
+
+
 
 ///
 
@@ -70,14 +85,14 @@ void GetVZValues( float *adc1_values,int num);
 
 typedef enum{
     MODE_MEASURE = 0,
-    MODE_SETUP,
-}mode_t;
+    MODE_SETUP
+}sys_mode_t;
 
 typedef struct{
     uint8_t dip_sw;
     uint8_t setup_update;
     uint8_t modbus_slave_address;
-    mode_t mode;
+    sys_mode_t mode;
 }sys_t;
 extern sys_t g_sys;
 
@@ -108,14 +123,65 @@ extern osMessageQId queue_ADCHandle;
 #define QSEL_VBAT_CHANNEL   0x0008
 
 
+#define FS_HZ          3600 // Sampling frequency is 1800hz
+#define FRAME_SAMPLES  1   // 
+
+#define ADC1_CH_NUM 3 // temp, vbat, vref
+#define ADC2_CH_NUM 6 // ADCIN1,2,3,4,5,6
 
 
 
 
+typedef struct{
+  uint16_t en;
+  int16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)];
+} st_sample_buf;
 
 
-#include "calc_leak.h"
-#include "calc_volt.h"
+#define SAMPLE_INDEX_MAX 12 // uint8_t の変数に入れるので最大255
+typedef struct {
+  /* ADC1: IN0..IN3 (4ch scan) */
+  uint16_t adc1_buf[FRAME_SAMPLES * ADC1_CH_NUM ];
+
+  int16_t adc2_buf[FRAME_SAMPLES * ADC2_CH_NUM ];
+
+  HAL_StatusTypeDef hal_status_adc[4];
+  osStatus osMessagePutStat;
+
+  float current_vdda ;
+  float current_temp ;
+  float current_vbat ;
+
+    // ... 既存のメンバ ...
+  uint32_t  osMessagePutCount;
+  uint32_t osMessagePutErrorCount;
+  uint32_t osMessageGetCount;
+  uint32_t osMessageGetTimeoutCount;
+  uint32_t adc1_callback_count;
+  uint32_t adc1_callback_count_last;
+  uint32_t sdadc1_callback_count;
+  uint32_t adc2_callback_count;
+  uint32_t error_sample_buf_overrun_count;
+
+  st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
+  uint8_t st_sample_buf_index;
+  Leak1Hz_5060 leak1hz_t[ADC2_CH_NUM];
+  float out_ma[ADC2_CH_NUM];
+  float out_ma_max[ADC2_CH_NUM];
+  float out_ma_min[ADC2_CH_NUM];
+
+  uint16_t v0_cycle_time;
+  float V0Hz;
+} st_sampling_cb;
+
+extern st_sampling_cb sampling_t;
+void Pase_init( void );
+void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state );
+uint32_t Get_cycle_time( uint16_t no );
+float GetVFreq( void );
+
+
+
 #include "util.h"
 #include "tsk_modbus.h"
 #include "modbus_reg.h"

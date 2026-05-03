@@ -168,7 +168,7 @@
 #define REG_MAX_LEAKAGE_1         0x0364  // 漏電1 MAX
 #define REG_MAX_LEAKAGE_2         0x0366  // 漏電2 MAX
 #define REG_MAX_LEAKAGE_3         0x0368  // 漏電3 MAX
-
+#define REG_MAX_LEAKAGE_4         0x036A  // 漏電4 MAX
 
 // =========================================================================
 // 3. 変数エリア: 最小値 (Minimum Values)
@@ -200,7 +200,93 @@
 #define REG_MIN_LEAKAGE_1         0x0464  // 漏電1 MIN
 #define REG_MIN_LEAKAGE_2         0x0466  // 漏電2 MIN
 #define REG_MIN_LEAKAGE_3         0x0468  // 漏電3 MIN
+#define REG_MIN_LEAKAGE_4         0x046A  // 漏電4 MIN
 
+/* =========================================================================
+ * OMRON KE1/KM1 Parameter Area (Modbus Address 0x0900~)
+ * ========================================================================= */
+
+// --- 基本設定 (相線式・同期) ---
+#define REG_PRM_SYS1_PHASE_WIRE     0x0900  // 系統1 適用相線式 (0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+#define REG_PRM_SYS2_PHASE_WIRE     0x0902  // 系統2 適用相線式
+#define REG_PRM_BLK1_SYNC_SEL       0x0904  // 計測ブロック1 同期選択 (0:系統1, 1:系統2)
+#define REG_PRM_BLK2_SYNC_SEL       0x0906  // 計測ブロック2 同期選択
+
+// --- CT/VT設定 ---
+#define REG_PRM_BLK1_CT_TYPE        0x0908  // 計測ブロック1 専用CT種別 (0:5A, 1:50A, 2:100A, 3:200A, 4:400A, 5:600A)
+#define REG_PRM_BLK2_CT_TYPE        0x090A  // 計測ブロック2 専用CT種別
+#define REG_PRM_SYS1_VT_RATIO       0x090C  // 系統1 VT比 (0.01～99.99 ※小数点以下2桁固定)
+#define REG_PRM_SYS2_VT_RATIO       0x090E  // 系統2 VT比
+#define REG_PRM_BLK1_CT_RATIO       0x0910  // 計測ブロック1 CT比 (1～1000)
+#define REG_PRM_BLK2_CT_RATIO       0x0912  // 計測ブロック2 CT比
+
+// --- ローカット設定 ---
+#define REG_PRM_BLK1_LOWCUT_CURR    0x0914  // 計測ブロック1 ローカット電流値 (0.1～19.9%)
+#define REG_PRM_BLK2_LOWCUT_CURR    0x0916  // 計測ブロック2 ローカット電流値
+#define REG_PRM_LEAKAGE_LOWCUT      0x0918  // 漏電ローカット電流値 (0.1～30.0mA)
+
+// --- 簡易計測設定 ---
+#define REG_PRM_SIMPLE_MEASURE_MODE 0x091A  // 簡易計測 (0:OFF/通常計測, 1:ON/簡易計測)
+#define REG_PRM_SYS1_SIMPLE_VOLT    0x091C  // 系統1 簡易計測時電圧 (0.1～9999.9V)
+#define REG_PRM_SYS2_SIMPLE_VOLT    0x091E  // 系統2 簡易計測時電圧
+#define REG_PRM_BLK1_SIMPLE_PF      0x0920  // 計測ブロック1 簡易計測時力率 (0.01～1.00)
+#define REG_PRM_BLK2_SIMPLE_PF      0x0922  // 計測ブロック2 簡易計測時力率
+
+// --- 平均回数 ---
+#define REG_PRM_AVG_COUNT           0x0924  // 平均回数 (0:OFF, 1:2回, 2:4回... A:1024回)
+
+// --- イベント入力設定 (1〜7) ---
+#define REG_PRM_EVT_IN1_FUNC        0x0926  // イベント入力設定1 (0:P.CSP, 1:H-ON, 2:3-ST)
+#define REG_PRM_EVT_IN2_FUNC        0x0928  // イベント入力設定2
+#define REG_PRM_EVT_IN3_FUNC        0x092A  // イベント入力設定3
+#define REG_PRM_EVT_IN4_FUNC        0x092C  // イベント入力設定4
+#define REG_PRM_EVT_IN5_FUNC        0x092E  // イベント入力設定5
+#define REG_PRM_EVT_IN6_FUNC        0x0930  // イベント入力設定6
+#define REG_PRM_EVT_IN7_FUNC        0x0932  // イベント入力設定7
+
+// --- イベント入力 NPN/PNP設定 (1〜7) ---
+#define REG_PRM_EVT_IN1_NPN_PNP     0x0934  // イベント入力1 NPN/PNP設定 (0:PNP, 1:NPN)
+#define REG_PRM_EVT_IN2_NPN_PNP     0x0936  // イベント入力2 NPN/PNP設定
+#define REG_PRM_EVT_IN3_NPN_PNP     0x0938  // イベント入力3 NPN/PNP設定
+#define REG_PRM_EVT_IN4_NPN_PNP     0x093A  // イベント入力4 NPN/PNP設定
+#define REG_PRM_EVT_IN5_NPN_PNP     0x093C  // イベント入力5 NPN/PNP設定
+#define REG_PRM_EVT_IN6_NPN_PNP     0x093E  // イベント入力6 NPN/PNP設定
+#define REG_PRM_EVT_IN7_NPN_PNP     0x0940  // イベント入力7 NPN/PNP設定
+
+// --- イベント入力 モード設定 (N-O/N-C) (1〜7) ---
+#define REG_PRM_EVT_IN1_MODE        0x0942  // イベント入力1 モード設定 (0:N-O, 1:N-C)
+#define REG_PRM_EVT_IN2_MODE        0x0944  // イベント入力2 モード設定
+#define REG_PRM_EVT_IN3_MODE        0x0946  // イベント入力3 モード設定
+#define REG_PRM_EVT_IN4_MODE        0x0948  // イベント入力4 モード設定
+#define REG_PRM_EVT_IN5_MODE        0x094A  // イベント入力5 モード設定
+#define REG_PRM_EVT_IN6_MODE        0x094C  // イベント入力6 モード設定
+#define REG_PRM_EVT_IN7_MODE        0x094E  // イベント入力7 モード設定
+
+// --- 計測時間設定 ---
+#define REG_PRM_MEASURE_START_TIME  0x0950  // 計測開始時刻 (HHMM)
+#define REG_PRM_MEASURE_END_TIME    0x0952  // 計測終了時刻 (HHMM)
+
+// --- 3-STATE 設定 (代表項目) ---
+#define REG_PRM_BLK1_3STATE_TARGET  0x0954  // 計測ブロック1 3-STATE 判定対象 (0:電力, 1:電流, 2:電圧...)
+#define REG_PRM_BLK2_3STATE_TARGET  0x0956  // 計測ブロック2 3-STATE 判定対象
+#define REG_PRM_BLK1_3STATE_EVT_IN  0x0958  // 計測ブロック1 3-STATE/原単位 イベント入力
+#define REG_PRM_BLK2_3STATE_EVT_IN  0x095A  // 計測ブロック2 3-STATE/原単位 イベント入力
+#define REG_PRM_BLK1_3STATE_HI_THR  0x095C  // 計測ブロック1 3-STATE HIGH 閾値
+#define REG_PRM_BLK2_3STATE_HI_THR  0x095E  // 計測ブロック2 3-STATE HIGH 閾値
+#define REG_PRM_BLK1_3STATE_LO_THR  0x0960  // 計測ブロック1 3-STATE LOW 閾値
+#define REG_PRM_BLK2_3STATE_LO_THR  0x0962  // 計測ブロック2 3-STATE LOW 閾値
+
+// --- 温度設定 ---
+#define REG_PRM_TEMP_UNIT           0x0968  // 温度単位 (0:摂氏/C, 1:華氏/F)
+#define REG_PRM_TEMP_CALIBRATION    0x096A  // 温度補正値1 (-50.0～50.0)
+
+// --- パルス換算設定 (代表項目) ---
+#define REG_PRM_PULSE_RATE_1        0x098A  // パルス換算係数設定1 (0.01～9999.99)
+// (0x098C〜0x0996 はパルス換算係数設定2〜7)
+
+// --- パルス出力設定 ---
+#define REG_PRM_PULSE_OUT_UNIT      0x09B8  // パルス出力単位 (0:1Wh, 1:10Wh, 2:100Wh ...)
+#define REG_PRM_PULSE_OUT_CIRCUIT   0x09BA  // パルス出力回路 (0:回路1, 1:回路2 ...)
 
 // =========================================================================
 // 4. 動作指令 (Operation Commands) - マニュアル 3.11
@@ -306,18 +392,97 @@ static uint16_t dummycnt = 0;
 int MODBUS_get_reg(uint16_t add, int16_t *val) 
 {
 	int ret = EXCEPTION_CODE_OK;
+  float fval[4];
 //	int a,b;
 //	int sadd;
 
 	switch( add ){
-    case 0x0000:
-      *val = g_sys.dip_sw;
+    case REG_INST_VOLTAGE_1:
+      GetVValues(fval,3);
+      *val = fval[0]*10.0;
       break;
-		default:
-//				ret = EXCEPTION_CODE_ILLIGAL_ADDRESS;
-      *val = dummycnt++;
+    case REG_INST_VOLTAGE_2:
+      GetVValues(fval,3);
+      *val = fval[1]*10.0;
+      break;
+    case REG_INST_VOLTAGE_3:
+      GetVValues(fval,3);
+      *val = fval[2]*10.0;
+      break;
 
-		break;
+    case REG_INST_FREQUENCY_1:
+      *val = GetVFreq()*10.0;
+      break;
+
+    case REG_INST_TEMPERATURE_1:
+      *val = sampling_t.current_temp*10.0;
+      break;
+
+    case REG_INST_LEAKAGE_1:
+      *val = sampling_t.out_ma[0]*10.0;
+      break;
+    case REG_INST_LEAKAGE_2:
+      *val = sampling_t.out_ma[1]*10.0;
+      break;
+    case REG_INST_LEAKAGE_3 :
+      *val = sampling_t.out_ma[2]*10.0;
+      break;
+    case REG_INST_LEAKAGE_4:
+      *val = sampling_t.out_ma[3]*10.0;
+      break;
+    case REG_MAX_VOLTAGE_1:
+      GetVMaxValues(fval,3);
+      *val = fval[0]*10.0f;
+      break;  
+    case REG_MAX_VOLTAGE_2:
+      GetVMaxValues(fval,3);
+      *val = fval[1]*10.0f;
+      break;
+    case REG_MAX_VOLTAGE_3:
+      GetVMaxValues(fval,3);
+      *val = fval[2]*10.0f;
+      break;
+
+    case REG_MAX_LEAKAGE_1:
+      *val = sampling_t.out_ma_max[0]*10.0f;
+      break;
+    case REG_MAX_LEAKAGE_2:
+      *val = sampling_t.out_ma_max[1]*10.0f;
+      break;
+    case REG_MAX_LEAKAGE_3:
+      *val = sampling_t.out_ma_max[2]*10.0f;
+      break;
+    case REG_MAX_LEAKAGE_4:
+      *val = sampling_t.out_ma_max[3]*10.0f;
+      break;
+
+    case REG_MIN_VOLTAGE_1:
+      GetVMinValues(fval,3);
+      *val = fval[0]*10.0f;
+      break;
+    case REG_MIN_VOLTAGE_2:
+      GetVMinValues(fval,3);
+      *val = fval[1]*10.0f;
+      break;   
+    case REG_MIN_VOLTAGE_3:
+      GetVMinValues(fval,3);
+      *val = fval[2]*10.0f ;   
+      break;
+    case REG_MIN_LEAKAGE_1:
+      *val = sampling_t.out_ma_min[0]*10.0f;  
+      break;
+    case REG_MIN_LEAKAGE_2:
+      *val = sampling_t.out_ma_min[1]*10.0f;  
+      break;
+    case REG_MIN_LEAKAGE_3:
+      *val = sampling_t.out_ma_min[2]*10.0f;
+      break;
+    case REG_MIN_LEAKAGE_4:
+      *val = sampling_t.out_ma_min[3]*10.0f;
+      break;  
+		default:
+      *val = 0;
+      break;
 	}
 	return ret;
 }
