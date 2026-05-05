@@ -414,15 +414,15 @@ static int cmd_set(  void )
 			kwd_no = search_keyword(t_set_param ,usbcb.word_top_ptr[1],usbcb.word_len[1]); // search command number
 			switch(kwd_no){
 				case KWD_IP:
-					snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",tSetup.tcpDesconip[0], tSetup.tcpDesconip[1], tSetup.tcpDesconip[2], tSetup.tcpDesconip[3]);
+					snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",setup.tcpDesconip[0], setup.tcpDesconip[1], setup.tcpDesconip[2], setup.tcpDesconip[3]);
 					usb_puts(str);
 					break;
 				case KWD_PORT:
-					snprintf(str,sizeof(str), "port:%d",tSetup.tcpDesconPort);
+					snprintf(str,sizeof(str), "port:%d",setup.tcpDesconPort);
 					usb_puts(str);
 					break;
 				case KWD_CONNECT_TIMEOUT:
-					snprintf(str,sizeof(str), "TCP disconnect timeout:%d",tSetup.tcpDescon_silent_timeout);
+					snprintf(str,sizeof(str), "TCP disconnect timeout:%d",setup.tcpDescon_silent_timeout);
 					usb_puts(str);
 					break;
 
@@ -447,12 +447,12 @@ static int cmd_set(  void )
 							ip[3] < 0 || ip[3] > 255 ){
 							usb_puts("Invalid IP Address Format.");
 						}else{
-							tSetup.tcpDesconip[0] = (uint8_t)ip[0];
-							tSetup.tcpDesconip[1] = (uint8_t)ip[1];
-							tSetup.tcpDesconip[2] = (uint8_t)ip[2];
-							tSetup.tcpDesconip[3] = (uint8_t)ip[3];
+							setup.tcpDesconip[0] = (uint8_t)ip[0];
+							setup.tcpDesconip[1] = (uint8_t)ip[1];
+							setup.tcpDesconip[2] = (uint8_t)ip[2];
+							setup.tcpDesconip[3] = (uint8_t)ip[3];
 							g_sys.setup_update = 1; // indicate setup update
-							snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",tSetup.tcpDesconip[0], tSetup.tcpDesconip[1], tSetup.tcpDesconip[2], tSetup.tcpDesconip[3]);
+							snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",setup.tcpDesconip[0], setup.tcpDesconip[1], setup.tcpDesconip[2], setup.tcpDesconip[3]);
 							usb_puts(str);
 						}
 					}else{
@@ -462,9 +462,9 @@ static int cmd_set(  void )
 				case KWD_PORT:
 					scanf_result = sscanf(usbcb.word_top_ptr[2], "%d ", &i32);
 					if(  (scanf_result == 1 ) && (i32 < 65535 ) && (i32 > 1) ){
-						tSetup.tcpDesconPort = (uint16_t)i32;
+						setup.tcpDesconPort = (uint16_t)i32;
 						g_sys.setup_update = 1; // indicate setup update
-						snprintf(str,sizeof(str), "port:%d",tSetup.tcpDesconPort);
+						snprintf(str,sizeof(str), "port:%d",setup.tcpDesconPort);
 						usb_puts(str);
 					}else{
 						usb_puts("Invalid Port Number Format.");
@@ -474,9 +474,9 @@ static int cmd_set(  void )
 
 					scanf_result = sscanf(usbcb.word_top_ptr[2], "%d ", &i32);
 					if(  (scanf_result == 1 ) &&  (i32 >= 0) ){
-						tSetup.tcpDescon_silent_timeout = i32;
+						setup.tcpDescon_silent_timeout = i32;
 						g_sys.setup_update = 1; // indicate setup update
-						snprintf(str,sizeof(str), "TCP disconnect timeout:%ld",tSetup.tcpDescon_silent_timeout);
+						snprintf(str,sizeof(str), "TCP disconnect timeout:%ld",setup.tcpDescon_silent_timeout);
 						usb_puts(str);
 					}else{
 						usb_puts("Invalid Connect Timeout Format.");

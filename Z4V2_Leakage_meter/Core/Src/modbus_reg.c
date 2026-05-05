@@ -9,310 +9,61 @@
 #include "modbus_reg.h"
 
 
+typedef {
+  // read-only
+  uint32_t  reg_inst_voltage[3];   // 電圧1〜3
+  uint32_t  reg_inst_frequency[1]; // 周波数1
+  uint32_t  reg_inst_temperature[1];   // 温度1
+  uint32_t reg_inst_leakage[8];    // 漏電1〜8
+
+  uint32_t  reg_max_voltage[3];   // 電圧1〜3 MAX
+  uint32_t  reg_max_leakage[8]; // 漏電1 MAX
+  uint32_t  reg_min_voltage[3];   // 電圧1〜3 MIN
+  uint32_t  reg_min_leakage[8]; // 漏電1 MIN
+  uint32_t reg_version;
+  uint32_t reg_status;
+  uint32_t reg_prm_leakage_low_cut;
+  uint32_t reg_prm_time_info_md;
+  uint32_t reg_prm_time_info_hms;
+
+  // write-only
+  uint16_t reg_prm_sys1_phase_wire_upper:
+  uint16_t reg_prm_leakage_ct_upper[8];
+  uint16_t reg_prm_leakage_low_cut_upper;
+  uint16_t reg_cmd_avg_count_upper
+  uint16_t reg_prm_unit_no_upper;
+  uint16_t reg_prm_baudrate_upper;
+  uint16_t reg_prm_data_bit_upper;
+  uint16_t reg_prm_stop_bit_upper;
+  uint16_t reg_prm_parity_upper;
+  uint16_t reg_prm_tx_wait_timer_upper;
+  uint16_t reg_cmd_operation;
+
+}modbusbuf_t;
+modbusbuf_t modbusbuf;
 
 
-/* =========================================================================
- * OMRON KE1-PGR1C Compatible Modbus Register Map
- * ========================================================================= */
+/// @brief セットアップが変更したことを記録する。tsk_calc内でg_sys.setup_updateを検知したら、tsk_setupに通知するために0に戻す。
+/// @param  
+void setup_update( void )
+{
+  g_sys.setup_update = 1;
+  g_sys.setup_update_time = xTaskGetTickCount();
+}
 
- /* =========================================================================
- * OMRON KE1-PGR1C Modbus Register Map
- * ========================================================================= */
-
-
-
-// --- バージョン・ステータス (Version & Status) ---
-#define REG_VERSION                 0x0700  // バージョン [cite: 1467]
-#define REG_STATUS                  0x0702  // ステータス [cite: 1467]
-
-// --- 警報履歴 (Alarm History) ---
-// ※ 履歴1 (最新) のみ抜粋。履歴2〜20は 0x071A〜0x07D6 に順次割り当てられています [cite: 1493, 1495, 1499, 1501]。
-#define REG_ALARM_HIST1_CODE        0x0710  // 履歴1 発生警報 [cite: 1493]
-#define REG_ALARM_HIST1_OCCUR_DATE  0x0712  // 履歴1 発生日時 (年月) [cite: 1493]
-#define REG_ALARM_HIST1_OCCUR_TIME  0x0714  // 履歴1 発生日時 (日・時分秒) [cite: 1493]
-#define REG_ALARM_HIST1_CLEAR_DATE  0x0716  // 履歴1 解除日時 (年月) [cite: 1493]
-#define REG_ALARM_HIST1_CLEAR_TIME  0x0718  // 履歴1 解除日時 (日・時分秒) [cite: 1493]
-
-#define REG_ALARM_INTERVAL 0x000A  // 警報発生間隔 [cite: 1494]
-
-// --- パラメータエリア (Parameters) ---
-// 漏電設定
-#define REG_PRM_LEAKAGE_LOW_CUT     0x0918  // 漏電ローカット電流値 [cite: 1712]
-#define REG_PRM_LEAKAGE_CMP_1       0x09DE  // 漏電比較値1 [cite: 1738]
-#define REG_PRM_LEAKAGE_CMP_2       0x09E0  // 漏電比較値2 [cite: 1738]
-#define REG_PRM_LEAKAGE_DELAY_1     0x09EE  // 漏電動作時間1 [cite: 1740]
-#define REG_PRM_LEAKAGE_DELAY_2     0x09F0  // 漏電動作時間2 [cite: 1740]
-
-// イベント入力設定
-#define REG_PRM_EVT_IN1_SETTING     0x0926  // イベント入力設定1 [cite: 1716]
-#define REG_PRM_EVT_IN2_SETTING     0x0928  // イベント入力設定2 [cite: 1716]
-#define REG_PRM_EVT_IN1_NPN_PNP     0x0934  // イベント入力1 NPN/PNP 入力モード設定 [cite: 1718]
-#define REG_PRM_EVT_IN2_NPN_PNP     0x0936  // イベント入力2 NPN/PNP 入力モード設定 [cite: 1718]
-#define REG_PRM_EVT_IN1_MODE        0x0942  // イベント入力1 入力モード設定 [cite: 1720]
-#define REG_PRM_EVT_IN2_MODE        0x0944  // イベント入力2 入力モード設定 [cite: 1720]
-
-// 時間設定
-#define REG_PRM_MEASURE_START_TIME  0x0950  // 計測開始時刻 [cite: 1722]
-#define REG_PRM_MEASURE_END_TIME    0x0952  // 計測終了時刻 [cite: 1723]
-
-// 出力端子設定
-#define REG_PRM_OUT1_FUNC           0x09FE  // 出力端子1 機能設定 [cite: 1743]
-#define REG_PRM_OUT2_FUNC           0x0A00  // 出力端子2 機能設定 [cite: 1744]
-#define REG_PRM_OUT1_STATE          0x0A04  // 出力端子1 状態 (N-O/N-C) [cite: 1745]
-#define REG_PRM_OUT2_STATE          0x0A06  // 出力端子2 状態 (N-O/N-C) [cite: 1746]
-
-// 通信設定
-#define REG_PRM_UNIT_NO             0x0B00  // ユニットNo. [cite: 1786]
-#define REG_PRM_BAUDRATE            0x0B02  // 通信速度 [cite: 1787]
-#define REG_PRM_DATA_BIT            0x0B04  // データビット長 [cite: 1787]
-#define REG_PRM_STOP_BIT            0x0B06  // ストップビット長 [cite: 1788]
-#define REG_PRM_PARITY              0x0B08  // 垂直パリティ [cite: 1788]
-#define REG_PRM_TX_WAIT_TIME        0x0B0A  // 送信待ち時間 [cite: 1789]
-#define REG_PRM_LINK_CONFIG         0x0BF0  // 連結構成 [cite: 1824]
-
-// ログ保存設定 (1〜6)
-#define REG_PRM_LOG1_TARGET         0x0D00  // ログ1 保存対象 [cite: 1825]
-#define REG_PRM_LOG2_TARGET         0x0D02  // ログ2 保存対象 [cite: 1826]
-#define REG_PRM_LOG3_TARGET         0x0D04  // ログ3 保存対象 [cite: 1826]
-#define REG_PRM_LOG4_TARGET         0x0D06  // ログ4 保存対象 [cite: 1827]
-#define REG_PRM_LOG5_TARGET         0x0D08  // ログ5 保存対象 [cite: 1827]
-#define REG_PRM_LOG6_TARGET         0x0D0A  // ログ6 保存対象 [cite: 1828]
-#define REG_PRM_LOG1_CYCLE          0x0D0C  // ログ1 保存周期 [cite: 1828]
-#define REG_PRM_LOG2_CYCLE          0x0D0E  // ログ2 保存周期 [cite: 1829]
-#define REG_PRM_LOG3_CYCLE          0x0D10  // ログ3 保存周期 [cite: 1829]
-#define REG_PRM_LOG4_CYCLE          0x0D12  // ログ4 保存周期 [cite: 1829]
-#define REG_PRM_LOG5_CYCLE          0x0D14  // ログ5 保存周期 [cite: 1830]
-#define REG_PRM_LOG6_CYCLE          0x0D16  // ログ6 保存周期 [cite: 1830]
-
-// 本体属性・時間情報
-#define REG_PRM_ATTR_READ_1         0x0F00  // 本体属性読出し1 [cite: 1832]
-#define REG_PRM_ATTR_READ_2         0x0F02  // 本体属性読出し2 [cite: 1833]
-#define REG_PRM_ATTR_READ_3         0x0F04  // 本体属性読出し3 [cite: 1833]
-#define REG_PRM_ATTR_READ_4         0x0F06  // 本体属性読出し4 [cite: 1834]
-#define REG_PRM_TIME_INFO_MD        0x0F08  // 時間情報（月日） [cite: 1834]
-#define REG_PRM_TIME_INFO_HMS       0x0F0A  // 時間情報（時分） [cite: 1835]
-
-
-/* =========================================================================
- * OMRON KE1-PGR1C Compatible Modbus Register Map
- * ========================================================================= */
-
-// =========================================================================
-// 1. 変数エリア: 瞬時値 (Instantaneous Values)
-// =========================================================================
-#define REG_INST_VOLTAGE_1        0x0000  // 電圧1 (V)
-#define REG_INST_VOLTAGE_2        0x0002  // 電圧2 (V)
-#define REG_INST_VOLTAGE_3        0x0004  // 電圧3 (V)
-
-#define REG_INST_CURRENT_1        0x000C  // 電流1 (A)
-#define REG_INST_CURRENT_2        0x000E  // 電流2 (A)
-#define REG_INST_CURRENT_3        0x0010  // 電流3 (A)
-// ※ 電流4〜12は 0x0012 〜 0x0022 に順次割り当て
-
-#define REG_INST_POWER_FACTOR_1   0x0024  // 力率1
-#define REG_INST_POWER_FACTOR_2   0x0026  // 力率2
-#define REG_INST_POWER_FACTOR_3   0x0028  // 力率3
-
-#define REG_INST_FREQUENCY_1      0x0034  // 周波数1 (Hz)
-#define REG_INST_FREQUENCY_2      0x0036  // 周波数2 (Hz)
-
-#define REG_INST_ACTIVE_POWER_1   0x0038  // 有効電力1 (W)
-#define REG_INST_ACTIVE_POWER_2   0x003A  // 有効電力2 (W)
-#define REG_INST_ACTIVE_POWER_3   0x003C  // 有効電力3 (W)
-
-#define REG_INST_REACTIVE_POWER_1 0x0048  // 無効電力1 (var)
-#define REG_INST_REACTIVE_POWER_2 0x004A  // 無効電力2 (var)
-#define REG_INST_REACTIVE_POWER_3 0x004C  // 無効電力3 (var)
-
-#define REG_INST_TEMPERATURE_1    0x0058  // 温度1 (℃/F)
-#define REG_INST_TEMPERATURE_2    0x005A  // 温度2 (℃/F)
-#define REG_INST_TEMPERATURE_3    0x005C  // 温度3 (℃/F)
-
-#define REG_INST_LEAKAGE_1        0x0068  // 漏電1 (mA)
-#define REG_INST_LEAKAGE_2        0x006A  // 漏電2 (mA)
-#define REG_INST_LEAKAGE_3        0x006C  // 漏電3 (mA)
-#define REG_INST_LEAKAGE_4        0x006E  // 漏電4 (mA)
-#define REG_INST_LEAKAGE_5        0x0070  // 漏電5 (mA)
-#define REG_INST_LEAKAGE_6        0x0072  // 漏電6 (mA)
-#define REG_INST_LEAKAGE_7        0x0074  // 漏電7 (mA)
-#define REG_INST_LEAKAGE_8        0x0076  // 漏電8 (mA)
-
-
-// =========================================================================
-// 2. 変数エリア: 最大値 (Maximum Values)
-// =========================================================================
-#define REG_MAX_VOLTAGE_1         0x0300  // 電圧1 MAX
-#define REG_MAX_VOLTAGE_2         0x0302  // 電圧2 MAX
-#define REG_MAX_VOLTAGE_3         0x0304  // 電圧3 MAX
-
-#define REG_MAX_CURRENT_1         0x030C  // 電流1 MAX
-#define REG_MAX_CURRENT_2         0x030E  // 電流2 MAX
-#define REG_MAX_CURRENT_3         0x0310  // 電流3 MAX
-
-#define REG_MAX_POWER_FACTOR_1    0x0324  // 力率1 MAX
-#define REG_MAX_POWER_FACTOR_2    0x0326  // 力率2 MAX
-#define REG_MAX_POWER_FACTOR_3    0x0328  // 力率3 MAX
-
-#define REG_MAX_ACTIVE_POWER_1    0x0334  // 有効電力1 MAX
-#define REG_MAX_ACTIVE_POWER_2    0x0336  // 有効電力2 MAX
-#define REG_MAX_ACTIVE_POWER_3    0x0338  // 有効電力3 MAX
-
-#define REG_MAX_REACTIVE_POWER_1  0x0344  // 無効電力1 MAX
-#define REG_MAX_REACTIVE_POWER_2  0x0346  // 無効電力2 MAX
-#define REG_MAX_REACTIVE_POWER_3  0x0348  // 無効電力3 MAX
-
-#define REG_MAX_TEMPERATURE_1     0x0354  // 温度1 MAX
-#define REG_MAX_TEMPERATURE_2     0x0356  // 温度2 MAX
-#define REG_MAX_TEMPERATURE_3     0x0358  // 温度3 MAX
-
-#define REG_MAX_LEAKAGE_1         0x0364  // 漏電1 MAX
-#define REG_MAX_LEAKAGE_2         0x0366  // 漏電2 MAX
-#define REG_MAX_LEAKAGE_3         0x0368  // 漏電3 MAX
-#define REG_MAX_LEAKAGE_4         0x036A  // 漏電4 MAX
-
-// =========================================================================
-// 3. 変数エリア: 最小値 (Minimum Values)
-// =========================================================================
-#define REG_MIN_VOLTAGE_1         0x0400  // 電圧1 MIN
-#define REG_MIN_VOLTAGE_2         0x0402  // 電圧2 MIN
-#define REG_MIN_VOLTAGE_3         0x0404  // 電圧3 MIN
-
-#define REG_MIN_CURRENT_1         0x040C  // 電流1 MIN
-#define REG_MIN_CURRENT_2         0x040E  // 電流2 MIN
-#define REG_MIN_CURRENT_3         0x0410  // 電流3 MIN
-
-#define REG_MIN_POWER_FACTOR_1    0x0424  // 力率1 MIN
-#define REG_MIN_POWER_FACTOR_2    0x0426  // 力率2 MIN
-#define REG_MIN_POWER_FACTOR_3    0x0428  // 力率3 MIN
-
-#define REG_MIN_ACTIVE_POWER_1    0x0434  // 有効電力1 MIN
-#define REG_MIN_ACTIVE_POWER_2    0x0436  // 有効電力2 MIN
-#define REG_MIN_ACTIVE_POWER_3    0x0438  // 有効電力3 MIN
-
-#define REG_MIN_REACTIVE_POWER_1  0x0444  // 無効電力1 MIN
-#define REG_MIN_REACTIVE_POWER_2  0x0446  // 無効電力2 MIN
-#define REG_MIN_REACTIVE_POWER_3  0x0448  // 無効電力3 MIN
-
-#define REG_MIN_TEMPERATURE_1     0x0454  // 温度1 MIN
-#define REG_MIN_TEMPERATURE_2     0x0456  // 温度2 MIN
-#define REG_MIN_TEMPERATURE_3     0x0458  // 温度3 MIN
-
-#define REG_MIN_LEAKAGE_1         0x0464  // 漏電1 MIN
-#define REG_MIN_LEAKAGE_2         0x0466  // 漏電2 MIN
-#define REG_MIN_LEAKAGE_3         0x0468  // 漏電3 MIN
-#define REG_MIN_LEAKAGE_4         0x046A  // 漏電4 MIN
-
-/* =========================================================================
- * OMRON KE1/KM1 Parameter Area (Modbus Address 0x0900~)
- * ========================================================================= */
-
-// --- 基本設定 (相線式・同期) ---
-#define REG_PRM_SYS1_PHASE_WIRE     0x0900  // 系統1 適用相線式 (0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
-#define REG_PRM_SYS2_PHASE_WIRE     0x0902  // 系統2 適用相線式
-#define REG_PRM_BLK1_SYNC_SEL       0x0904  // 計測ブロック1 同期選択 (0:系統1, 1:系統2)
-#define REG_PRM_BLK2_SYNC_SEL       0x0906  // 計測ブロック2 同期選択
-
-// --- CT/VT設定 ---
-#define REG_PRM_BLK1_CT_TYPE        0x0908  // 計測ブロック1 専用CT種別 (0:5A, 1:50A, 2:100A, 3:200A, 4:400A, 5:600A)
-#define REG_PRM_BLK2_CT_TYPE        0x090A  // 計測ブロック2 専用CT種別
-#define REG_PRM_SYS1_VT_RATIO       0x090C  // 系統1 VT比 (0.01～99.99 ※小数点以下2桁固定)
-#define REG_PRM_SYS2_VT_RATIO       0x090E  // 系統2 VT比
-#define REG_PRM_BLK1_CT_RATIO       0x0910  // 計測ブロック1 CT比 (1～1000)
-#define REG_PRM_BLK2_CT_RATIO       0x0912  // 計測ブロック2 CT比
-
-// --- ローカット設定 ---
-#define REG_PRM_BLK1_LOWCUT_CURR    0x0914  // 計測ブロック1 ローカット電流値 (0.1～19.9%)
-#define REG_PRM_BLK2_LOWCUT_CURR    0x0916  // 計測ブロック2 ローカット電流値
-#define REG_PRM_LEAKAGE_LOWCUT      0x0918  // 漏電ローカット電流値 (0.1～30.0mA)
-
-// --- 簡易計測設定 ---
-#define REG_PRM_SIMPLE_MEASURE_MODE 0x091A  // 簡易計測 (0:OFF/通常計測, 1:ON/簡易計測)
-#define REG_PRM_SYS1_SIMPLE_VOLT    0x091C  // 系統1 簡易計測時電圧 (0.1～9999.9V)
-#define REG_PRM_SYS2_SIMPLE_VOLT    0x091E  // 系統2 簡易計測時電圧
-#define REG_PRM_BLK1_SIMPLE_PF      0x0920  // 計測ブロック1 簡易計測時力率 (0.01～1.00)
-#define REG_PRM_BLK2_SIMPLE_PF      0x0922  // 計測ブロック2 簡易計測時力率
-
-// --- 平均回数 ---
-#define REG_PRM_AVG_COUNT           0x0924  // 平均回数 (0:OFF, 1:2回, 2:4回... A:1024回)
-
-// --- イベント入力設定 (1〜7) ---
-#define REG_PRM_EVT_IN1_FUNC        0x0926  // イベント入力設定1 (0:P.CSP, 1:H-ON, 2:3-ST)
-#define REG_PRM_EVT_IN2_FUNC        0x0928  // イベント入力設定2
-#define REG_PRM_EVT_IN3_FUNC        0x092A  // イベント入力設定3
-#define REG_PRM_EVT_IN4_FUNC        0x092C  // イベント入力設定4
-#define REG_PRM_EVT_IN5_FUNC        0x092E  // イベント入力設定5
-#define REG_PRM_EVT_IN6_FUNC        0x0930  // イベント入力設定6
-#define REG_PRM_EVT_IN7_FUNC        0x0932  // イベント入力設定7
-
-// --- イベント入力 NPN/PNP設定 (1〜7) ---
-#define REG_PRM_EVT_IN1_NPN_PNP     0x0934  // イベント入力1 NPN/PNP設定 (0:PNP, 1:NPN)
-#define REG_PRM_EVT_IN2_NPN_PNP     0x0936  // イベント入力2 NPN/PNP設定
-#define REG_PRM_EVT_IN3_NPN_PNP     0x0938  // イベント入力3 NPN/PNP設定
-#define REG_PRM_EVT_IN4_NPN_PNP     0x093A  // イベント入力4 NPN/PNP設定
-#define REG_PRM_EVT_IN5_NPN_PNP     0x093C  // イベント入力5 NPN/PNP設定
-#define REG_PRM_EVT_IN6_NPN_PNP     0x093E  // イベント入力6 NPN/PNP設定
-#define REG_PRM_EVT_IN7_NPN_PNP     0x0940  // イベント入力7 NPN/PNP設定
-
-// --- イベント入力 モード設定 (N-O/N-C) (1〜7) ---
-#define REG_PRM_EVT_IN1_MODE        0x0942  // イベント入力1 モード設定 (0:N-O, 1:N-C)
-#define REG_PRM_EVT_IN2_MODE        0x0944  // イベント入力2 モード設定
-#define REG_PRM_EVT_IN3_MODE        0x0946  // イベント入力3 モード設定
-#define REG_PRM_EVT_IN4_MODE        0x0948  // イベント入力4 モード設定
-#define REG_PRM_EVT_IN5_MODE        0x094A  // イベント入力5 モード設定
-#define REG_PRM_EVT_IN6_MODE        0x094C  // イベント入力6 モード設定
-#define REG_PRM_EVT_IN7_MODE        0x094E  // イベント入力7 モード設定
-
-// --- 計測時間設定 ---
-#define REG_PRM_MEASURE_START_TIME  0x0950  // 計測開始時刻 (HHMM)
-#define REG_PRM_MEASURE_END_TIME    0x0952  // 計測終了時刻 (HHMM)
-
-// --- 3-STATE 設定 (代表項目) ---
-#define REG_PRM_BLK1_3STATE_TARGET  0x0954  // 計測ブロック1 3-STATE 判定対象 (0:電力, 1:電流, 2:電圧...)
-#define REG_PRM_BLK2_3STATE_TARGET  0x0956  // 計測ブロック2 3-STATE 判定対象
-#define REG_PRM_BLK1_3STATE_EVT_IN  0x0958  // 計測ブロック1 3-STATE/原単位 イベント入力
-#define REG_PRM_BLK2_3STATE_EVT_IN  0x095A  // 計測ブロック2 3-STATE/原単位 イベント入力
-#define REG_PRM_BLK1_3STATE_HI_THR  0x095C  // 計測ブロック1 3-STATE HIGH 閾値
-#define REG_PRM_BLK2_3STATE_HI_THR  0x095E  // 計測ブロック2 3-STATE HIGH 閾値
-#define REG_PRM_BLK1_3STATE_LO_THR  0x0960  // 計測ブロック1 3-STATE LOW 閾値
-#define REG_PRM_BLK2_3STATE_LO_THR  0x0962  // 計測ブロック2 3-STATE LOW 閾値
-
-// --- 温度設定 ---
-#define REG_PRM_TEMP_UNIT           0x0968  // 温度単位 (0:摂氏/C, 1:華氏/F)
-#define REG_PRM_TEMP_CALIBRATION    0x096A  // 温度補正値1 (-50.0～50.0)
-
-// --- パルス換算設定 (代表項目) ---
-#define REG_PRM_PULSE_RATE_1        0x098A  // パルス換算係数設定1 (0.01～9999.99)
-// (0x098C〜0x0996 はパルス換算係数設定2〜7)
-
-// --- パルス出力設定 ---
-#define REG_PRM_PULSE_OUT_UNIT      0x09B8  // パルス出力単位 (0:1Wh, 1:10Wh, 2:100Wh ...)
-#define REG_PRM_PULSE_OUT_CIRCUIT   0x09BA  // パルス出力回路 (0:回路1, 1:回路2 ...)
-
-// =========================================================================
-// 4. 動作指令 (Operation Commands) - マニュアル 3.11
-// =========================================================================
-// ※ファンクションコード: 0x06 (Write Single Register)
-// ※書込先アドレス: 常に 0x0000
-
-#define CMD_ADDR_OPERATION        0x0000  // 動作指令の書込先アドレス
-
-// 以下の値は「指令コード(上位1バイト) + 関連情報(下位1バイト)」の書込データです
-#define CMD_DATA_RESET_ENERGY     0x0300  // 積算電力量のゼロリセット
-#define CMD_DATA_GOTO_MEASURE     0x0400  // 計測モードへ移行
-#define CMD_DATA_GOTO_SETTING     0x0700  // 設定モードへ移行
-#define CMD_DATA_INIT_HISTORY     0x0800  // 計測履歴初期化
-#define CMD_DATA_INIT_SETTINGS    0x0901  // 設定値初期化
-#define CMD_DATA_INIT_ALL         0x0903  // 全初期化
-#define CMD_DATA_INIT_ALARM       0x0904  // 警報履歴初期化
-#define CMD_DATA_READ_VOLT_DIP_0  0x1000  // 瞬低ログデータ読出し (先頭へ移動)
-#define CMD_DATA_READ_VOLT_DIP_1  0x1001  // 瞬低ログデータ読出し (ポインタを進める)
-#define CMD_DATA_READ_VOLT_DIP_2  0x1002  // 瞬低ログデータ読出し (消去して進める)
-#define CMD_DATA_RESET_MAX        0x1200  // 各計測値最大値リセット
-#define CMD_DATA_RESET_MIN        0x1300  // 各計測値最小値リセット
-#define CMD_DATA_SOFT_RESET       0x9900  // ソフトリセット (無応答になります)
-
-
-
+/// @brief パラメータの値がmin〜maxの範囲内にあるかチェックする。範囲外なら-1、正常なら0を返す。
+/// @param value チェックする値
+/// @param min 最小値
+/// @param max 最大値
+/// @return 範囲内なら0、範囲外なら-1
+int check_parameter(uint32_t value, uint32_t min, uint32_t max)
+{
+  if( value <= min || value >= max ){
+    return -1; // 不正な値
+  }else{
+    return 0; // 正常
+  }
+}
 
 /// @brief modbus writeのとき、add番地にint16_t dataを書き込む
 /// @param add 
@@ -333,10 +84,10 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
         // 本計測器には機能がないので 何もしない。 EXCEPTION_CODE_OK を返す。
           break;
         case CMD_DATA_GOTO_MEASURE:// 計測モードへ移行
-          g_sys.mode = MODE_MEASURE;
+          g_sys.mode_next = MODE_MEASURE;
             break;
         case CMD_DATA_GOTO_SETTING:// 設定モードへ移行 
-          g_sys.mode = MODE_SETUP;
+          g_sys.mode_next = MODE_SETUP;
           break;
         case CMD_DATA_INIT_HISTORY:
         // 計測履歴初期化
@@ -376,7 +127,292 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA;
       }
       break;
-    
+    case REG_PRM_SYS1_PHASE_WIRE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_sys1_phase_wire_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_SYS1_PHASE_WIRE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_sys1_phase_wire_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.ac_phase_wire, setup_max.ac_phase_wire ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.ac_phase_wire = tmp ; 
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_LEAKAGE_CT1_TYPE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_leakage_ct_upper[0] = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_LEAKAGE_CT1_TYPE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[0];
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.ct_type[0], setup_max.ct_type[0] ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.ct_type[0] = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_LEAKAGE_CT2_TYPE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_leakage_ct_upper[1] = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_LEAKAGE_CT2_TYPE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[1];
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.ct_type[1], setup_max.ct_type[1] ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.ct_type[1] = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_LEAKAGE_CT3_TYPE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_leakage_ct_upper[2] = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_LEAKAGE_CT3_TYPE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[2];
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.ct_type[2], setup_max.ct_type[2] ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.ct_type[2] = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_LEAKAGE_CT4_TYPE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_leakage_ct_upper[3] = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_LEAKAGE_CT4_TYPE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[3];
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.ct_type[3], setup_max.ct_type[3] ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.ct_type[2] = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_LEAKAGE_LOW_CUT:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_leakage_low_cut_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_LEAKAGE_LOW_CUT+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_leakage_low_cut_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.leakage_low_cut, setup_max.leakage_low_cut ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.leakage_low_cut = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_AVG_COUNT:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_cmd_avg_count_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_AVG_COUNT+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_cmd_avg_count_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.avg_count, setup_max.avg_count ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.avg_count = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_UNIT_NO:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_unit_no_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_UNIT_NO+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_unit_no_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.unit_no, setup_max.unit_no ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.unit_no = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_BAUDRATE:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_baudrate_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_BAUDRATE+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_baudrate_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.baudrate, setup_max.baudrate ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.baudrate = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_DATA_BIT:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_data_bit_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_DATA_BIT+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_data_bit_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.data_bit, setup_max.data_bit ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.data_bit = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_STOP_BIT:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_stop_bit_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_STOP_BIT+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_stop_bit_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.stop_bit, setup_max.stop_bit ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.stop_bit = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_PARITY:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_parity_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_PARITY+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_parity_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.parity, setup_max.parity ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.parity = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
+    case REG_PRM_TX_WAIT_TIME:
+      if( sys.mode == MODE_SETUP ){
+        modbusbuf.reg_prm_tx_wait_timer_upper = data;
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+    case REG_PRM_TX_WAIT_TIME+1:
+      if( sys.mode == MODE_SETUP ){
+        uint32_t tmp = modbusbuf.reg_prm_tx_wait_timer_upper;
+        tmp = (tmp<<16) | (uint16_t)data;
+        if( check_parameter( tmp, setup_min.tx_wait_time, setup_max.tx_wait_time ) != 0 ){
+          ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
+        }else{
+          setup.tx_wait_time = tmp ;
+          setup_update();
+        }
+      }else{
+        ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
+      }
+      break;
+
     default:
     ret = EXCEPTION_CODE_ILLEGAL_ADDRESS;
       break;
@@ -384,7 +420,9 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 	return ret;
 }
 
-static uint16_t dummycnt = 0;
+
+
+
 /// @brief modbus readのとき、add番地の値をvalに入れる
 /// @param add 
 /// @param val 
@@ -399,88 +437,365 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
 	switch( add ){
     case REG_INST_VOLTAGE_1:
       GetVValues(fval,3);
-      *val = fval[0]*10.0;
+      modbusbuf.reg_inst_voltage[0] = (uint32_t)(fval[0]*10.0);
+      *val = modbusbuf.reg_inst_voltage[0]>>16; // 上位16ビットを返す
       break;
+    case REG_INST_VOLTAGE_1+1:
+      *val = modbusbuf.reg_inst_voltage[0]&0xFFFF; // 下位16ビットを返す
+      break;
+
     case REG_INST_VOLTAGE_2:
       GetVValues(fval,3);
-      *val = fval[1]*10.0;
+      modbusbuf.reg_inst_voltage[1] = (uint32_t)(fval[1]*10.0); 
+      *val = modbusbuf.reg_inst_voltage[1]>>16; // 上位16ビットを返す
+      break;
+    case REG_INST_VOLTAGE_2+1:
+      *val = modbusbuf.reg_inst_voltage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_INST_VOLTAGE_3:
       GetVValues(fval,3);
-      *val = fval[2]*10.0;
+      modbusbuf.reg_inst_voltage[2] = (uint32_t)(fval[2]*10.0);
+      *val = modbusbuf.reg_inst_voltage[2]>>16; // 上位16ビットを返す
+      break;
+    case REG_INST_VOLTAGE_3+1:
+      *val = modbusbuf.reg_inst_voltage[2]&0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_INST_FREQUENCY_1:
-      *val = GetVFreq()*10.0;
+      modbusbuf.reg_inst_frequency[0] = sampling_t.frequency*10.0;
+      *val = modbusbuf.reg_inst_frequency[0]>>16; // 上位16ビットを返す
+      break;
+     case REG_INST_FREQUENCY_1+1:
+      *val = modbusbuf.reg_inst_frequency[0]&0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_INST_TEMPERATURE_1:
-      *val = sampling_t.current_temp*10.0;
+      modbusbuf.reg_inst_temperature[0] = sampling_t.current_temp*10.0;;
+      *val = modbusbuf.reg_inst_temperature[0]>>16; // 上位16ビットを返す
+      break;
+    case REG_INST_TEMPERATURE_1+1:
+      *val = modbusbuf.reg_inst_temperature[0]&0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_INST_LEAKAGE_1:
-      *val = sampling_t.out_ma[0]*10.0;
+      *val = modbusbuf.reg_inst_leakage[0]>>16; // 上位16ビットを返す
       break;
+    case REG_INST_LEAKAGE_1+1:
+      *val = modbusbuf.reg_inst_leakage[0]&0xFFFF; // 下位16ビットを返す
+      break;
+
     case REG_INST_LEAKAGE_2:
-      *val = sampling_t.out_ma[1]*10.0;
+      modbusbuf.reg_inst_leakage[1] = sampling_t.out_ma[1]*10.0;
+      *val = modbusbuf.reg_inst_leakage[1]>>16; // 上位16ビットを返す
       break;
-    case REG_INST_LEAKAGE_3 :
-      *val = sampling_t.out_ma[2]*10.0;
+    
+    case REG_INST_LEAKAGE_2+1:
+      *val = modbusbuf.reg_inst_leakage[1]&0xFFFF; // 下位16ビットを返す
       break;
+
+    case REG_INST_LEAKAGE_3:
+      *val = modbusbuf.reg_inst_leakage[2]>>16; // 上位16ビットを返す
+      break;
+    case REG_INST_LEAKAGE_3+1:
+      *val = modbusbuf.reg_inst_leakage[2]&0xFFFF; // 下位16ビットを返す
+      break;
+
     case REG_INST_LEAKAGE_4:
-      *val = sampling_t.out_ma[3]*10.0;
+      *val = modbusbuf.reg_inst_leakage[3]>>16; // 上位16ビットを返す
       break;
+    case REG_INST_LEAKAGE_4+1:
+      *val = modbusbuf.reg_inst_leakage[3]&0xFFFF; // 下位16ビットを返す
+      break;
+
+
     case REG_MAX_VOLTAGE_1:
       GetVMaxValues(fval,3);
-      *val = fval[0]*10.0f;
+      modbusbuf.reg_max_voltage[0] = fval[0]*10.0f;
+      *val = modbusbuf.reg_max_voltage[0]>>16; // 上位16ビットを返す
       break;  
+    case REG_MAX_VOLTAGE_1+1:
+      *val = modbusbuf.reg_max_voltage[0]&0xFFFF; // 下位16ビットを返す
+      break;
+
     case REG_MAX_VOLTAGE_2:
       GetVMaxValues(fval,3);
-      *val = fval[1]*10.0f;
+      modbusbuf.reg_max_voltage[1] = fval[1]*10.0f;
+      *val = modbusbuf.reg_max_voltage[1]>>16; // 上位16ビットを返す
+      break;  
+    case REG_MAX_VOLTAGE_2+1:
+      *val = modbusbuf.reg_max_voltage[1]&0xFFFF; // 下位16ビットを返す
       break;
-    case REG_MAX_VOLTAGE_3:
+
+      case REG_MAX_VOLTAGE_3:
       GetVMaxValues(fval,3);
-      *val = fval[2]*10.0f;
+      modbusbuf.reg_max_voltage[2] = fval[2]*10.0f;
+      *val = modbusbuf.reg_max_voltage[2]>>16; // 上位16ビットを返す
+      break;
+    case REG_MAX_VOLTAGE_3+1:
+      *val = modbusbuf.reg_max_voltage[2]&0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_MAX_LEAKAGE_1:
-      *val = sampling_t.out_ma_max[0]*10.0f;
+      modbusbuf.reg_max_leakage[0] = sampling_t.out_ma_max[0]*10.0f;
+      *val = modbusbuf.reg_max_leakage[0]>>16; // 上位16ビットを返す
+      break;
+    case REG_MAX_LEAKAGE_1+1:
+      *val = modbusbuf.reg_max_leakage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_2:
-      *val = sampling_t.out_ma_max[1]*10.0f;
+      modbusbuf.reg_max_leakage[1] = sampling_t.out_ma_max[1]*10.0f;
+      *val = modbusbuf.reg_max_leakage[1]>>16; // 上位16ビットを返す
+      break;
+    case REG_MAX_LEAKAGE_2+1:
+      *val = modbusbuf.reg_max_leakage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_3:
-      *val = sampling_t.out_ma_max[2]*10.0f;
+      modbusbuf.reg_max_leakage[2] = sampling_t.out_ma_max[2]*10.0f;
+      *val = modbusbuf.reg_max_leakage[2]>>16; // 上位16ビットを返す
+      break;
+    case REG_MAX_LEAKAGE_3+1:
+      *val = modbusbuf.reg_max_leakage[2]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_4:
-      *val = sampling_t.out_ma_max[3]*10.0f;
+      modbusbuf.reg_max_leakage[3] = sampling_t.out_ma_max[3]*10.0f;
+      *val = modbusbuf.reg_max_leakage[3]>>16; // 上位16ビットを返す
+      break;
+    case REG_MAX_LEAKAGE_4+1:
+      *val = modbusbuf.reg_max_leakage[3]&0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_MIN_VOLTAGE_1:
       GetVMinValues(fval,3);
-      *val = fval[0]*10.0f;
+      modbusbuf.reg_min_voltage[0] = (uint32_t)(fval[0]*10.0f);
+      *val = modbusbuf.reg_min_voltage[0]>>16; // 上位16ビットを返す
+      break;
+    case REG_MIN_VOLTAGE_1+1:
+      *val = modbusbuf.reg_min_voltage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_VOLTAGE_2:
       GetVMinValues(fval,3);
-      *val = fval[1]*10.0f;
+      modbusbuf.reg_min_voltage[1] = (uint32_t)(fval[1]*10.0f);
+      *val = modbusbuf.reg_min_voltage[1]>>16; // 上位16ビットを返す
       break;   
+    case REG_MIN_VOLTAGE_2+1:
+      *val = modbusbuf.reg_min_voltage[1]&0xFFFF; // 下位16ビットを返す
+      break;
     case REG_MIN_VOLTAGE_3:
       GetVMinValues(fval,3);
-      *val = fval[2]*10.0f ;   
+      modbusbuf.reg_min_voltage[2] = (uint32_t)(fval[2]*10.0f);  
+      *val = modbusbuf.reg_min_voltage[2]>>16; // 上位16ビットを返す
       break;
+    case REG_MIN_VOLTAGE_3+1:
+      *val = modbusbuf.reg_min_voltage[2]&0xFFFF; // 下位16ビットを返す
+      break;
+
     case REG_MIN_LEAKAGE_1:
-      *val = sampling_t.out_ma_min[0]*10.0f;  
+      modbusbuf.reg_min_leakage[0] = sampling_t.out_ma_min[0]*10.0f;  
+      *val = modbusbuf.reg_min_leakage[0]>>16; // 上位16ビットを返す
+      break;
+    case REG_MIN_LEAKAGE_1+1:
+      *val = modbusbuf.reg_min_leakage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_2:
-      *val = sampling_t.out_ma_min[1]*10.0f;  
+      modbusbuf.reg_min_leakage[1] = sampling_t.out_ma_min[1]*10.0f;  
+      *val = modbusbuf.reg_min_leakage[1]>>16; // 上位16ビットを返す
       break;
+    case REG_MIN_LEAKAGE_2+1:
+      *val = modbusbuf.reg_min_leakage[1]&0xFFFF; // 下位16ビットを返す
+      break;  
     case REG_MIN_LEAKAGE_3:
-      *val = sampling_t.out_ma_min[2]*10.0f;
+      modbusbuf.reg_min_leakage[2] = sampling_t.out_ma_min[2]*10.0f;
+      *val = modbusbuf.reg_min_leakage[2]>>16; // 上位16ビットを返す
+      break;
+    case REG_MIN_LEAKAGE_3+1:
+      *val = modbusbuf.reg_min_leakage[2]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_4:
-      *val = sampling_t.out_ma_min[3]*10.0f;
+      modbusbuf.reg_min_leakage[3] = sampling_t.out_ma_min[3]*10.0f;
+      *val = modbusbuf.reg_min_leakage[3]>>16; // 上位16ビットを返す
+      break;
+    case REG_MIN_LEAKAGE_4+1:
+      *val = modbusbuf.reg_min_leakage[3]&0xFFFF; // 下位16ビットを返す
+      break;
+    case REG_VERSION:
+      modbusbuf.reg_version = 0x00000000 // バージョン を表す値 (上位16ビットがメジャーバージョン、下位16ビットがマイナーバージョン)
+      *val = 0x0000; // バージョン 1.00  を表す値
+      break;
+    case REG_VERSION+1:
+      *val = 0x0100; // バージョン 1.00 を表す値
+      break;
+    case REG_STATUS:
+      modbusbuf.reg_status = 0x00000000 ; // ステータス  を表す値 (例: 正常動作中)
+      *val = modbusbuf.reg_status>>16; // 上位16ビットを返す
+      break;
+    case REG_STATUS+1:
+      *val = modbusbuf.reg_status&0xFFFF; // 下位16ビットを返す
+      break;
+
+    case REG_PRM_SYS1_PHASE_WIRE:
+      *val = setup.ac_phase_wire>>16; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      break;
+
+    case REG_PRM_SYS1_PHASE_WIRE+1:
+      *val = setup.ac_phase_wire&0xFFFF; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      break;
+    case REG_PRM_SYS2_PHASE_WIRE:
+      *val = 0; // 系統2 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      break;
+    case REG_PRM_SYS2_PHASE_WIRE+1:
+      *val = 0; // 系統2 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      break;
+    case REG_PRM_BLK1_SYNC_SEL:
+      *val = 0; // 計測ブロック1 同期選択 を表す値 (例: 0:系統1, 1:系統2)
+      break;
+    case REG_PRM_BLK1_SYNC_SEL+1:
+      *val = 0; // 計測ブロック1 同期選択 を表す値 (例: 0:系統1, 1:系統2)
+      break;
+    case REG_PRM_LEAKAGE_CT1_TYPE:
+      *val = setup.ct_type[0]>>16; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT1_TYPE+1:
+      *val = setup.ct_type[0]&0xFFFF; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT2_TYPE:
+      *val = setup.ct_type[1]>>16; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT2_TYPE+1:
+      *val = setup.ct_type[1]&0xFFFF; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT3_TYPE:
+      *val = setup.ct_type[2]>>16; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT3_TYPE+1:
+      *val = setup.ct_type[2]&0xFFFF; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT4_TYPE:
+      *val = setup.ct_type[3]>>16; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT4_TYPE+1:
+      *val = setup.ct_type[3]&0xFFFF; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT5_TYPE:
+      *val = 0; // 漏電CT5タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT5_TYPE+1:
+      *val = 0; // 漏電CT5タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT6_TYPE:
+      *val = 0; // 漏電CT6タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT6_TYPE+1:
+      *val = 0; // 漏電CT6タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT7_TYPE:
+      *val = 0; // 漏電CT7タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT7_TYPE+1:
+      *val = 0; // 漏電CT7タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+    case REG_PRM_LEAKAGE_CT8_TYPE:
+      *val = 0; // 漏電CT8タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break;
+    case REG_PRM_LEAKAGE_CT8_TYPE+1:
+      *val = 0; // 漏電CT8タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      break; 
+
+    case REG_PRM_LEAKAGE_LOW_CUT:
+      modbusbuf.reg_prm_leakage_low_cut = setup.leakage_low_cut*10.0f; // 漏電ローカット電流値 0.1mA を表す値
+      *val = modbusbuf.reg_prm_leakage_low_cut>>16; // 上位16ビットを返す
+      break;
+    case REG_PRM_LEAKAGE_LOW_CUT+1:
+      *val = modbusbuf.reg_prm_leakage_low_cut&0xFFFF; // 下位16ビットを返す
+      break;
+
+    case REG_PRM_AVG_COUNT:
+      *val = 0;
+      break;
+    case REG_PRM_AVG_COUNT+1:
+      *val = setup.avg_count; // 平均化回数 を表す値 (例: 10)
+      break;
+
+    case REG_PRM_UNIT_NO:
+      *val = setup.modbus_slave_address>>16; // ユニット番号 を表す値
+      break;
+    case REG_PRM_UNIT_NO+1:
+      *val = setup.modbus_slave_address&0xFFFF; // ユニット番号 を表す値
+      break;
+    case REG_PRM_BAUDRATE:
+      *val = setup.baudrate>>16; // 通信速度 を表す値 (例: 9600)
+      break;
+    case REG_PRM_BAUDRATE+1:
+      *val = setup.baudrate&0xFFFF; // 通信速度 を表す値 (例: 9600)
+      break;
+    case REG_PRM_DATA_BIT:
+      *val = setup.bit_length >>16; // データビット長 を表す値 (例: 8)
+      break;
+    case REG_PRM_DATA_BIT+1:
+      *val = setup.bit_length & 0xFFFF; // データビット長 を表す値 (例: 8)
+      break;
+    case REG_PRM_STOP_BIT:
+      *val = setup.stop_bit >>16; // ストップビット長 を表す値 (例: 1)
+      break;
+    case REG_PRM_STOP_BIT+1:
+      *val = setup.stop_bit & 0xFFFF; // ストップビット長 を表す値 (例: 1)
+      break;
+    case REG_PRM_PARITY:
+      *val = setup.parity >>16; // 垂直パリティ
+      break;
+    case REG_PRM_PARITY+1:
+      *val = setup.parity & 0xFFFF; // 垂直パリティ
       break;  
-		default:
+    case REG_PRM_TX_WAIT_TIME:
+      *val = setup.response_delay_ms >>16; // 送信待ち時間 を表す値 (例: 100ms)
+      break;
+    case REG_PRM_TX_WAIT_TIME+1:
+      *val = setup.response_delay_ms & 0xFFFF; // 送信待ち時間 を表す値 (例: 100ms)
+      break;  
+    case REG_PRM_LINK_CONFIG:
+      *val = 0; // 連結構成 を表す値 (例: 0: 非連結, 1: 連結)
+      break;
+    case REG_PRM_LINK_CONFIG+1:
+      *val = 0; // 連結構成 を表す値 (例: 0: 非連結, 1: 連結)
+      break;
+    case REG_PRM_ATTR_READ_1:
+      *val = 0; // 読み取り属性1 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_1+1:
+      *val = 0; // 読み取り属性1 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_2:
+      *val = 0; // 読み取り属性2 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_2+1:
+      *val = 0; // 読み取り属性2 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_3:
+      *val = 0; // 読み取り属性3 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_3+1:
+      *val = 0; // 読み取り属性3 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_4:
+      *val = 0; // 読み取り属性4 を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_ATTR_READ_4+1:
+      *val = 0; // 読み取り属性4  を表す値 (例: 0: 読み取り不可, 1: 読み取り可能)
+      break;
+    case REG_PRM_TIME_INFO_MD:
+      modbusbuf.reg_prm_time_info_md = 0; // 時間情報（月日） を表す値 (例: 0xMMDD)
+      *val = modbusbuf.reg_prm_time_info_md>>16; // 上位16ビットを返す
+      break;
+    case REG_PRM_TIME_INFO_MD+1:
+      *val = modbusbuf.reg_prm_time_info_md&0xFFFF; // 下位16ビットを返す
+      break;
+    case REG_PRM_TIME_INFO_HMS: 
+      modbusbuf.reg_prm_time_info_hms = 0; // 時間情報（時分） を表す値 (例: 0xHHMM)
+      *val = modbusbuf.reg_prm_time_info_hms>>16; // 上位16ビットを返す
+      break;  
+    case REG_PRM_TIME_INFO_HMS+1:
+      *val = modbusbuf.reg_prm_time_info_hms&0xFFFF; // 下位16ビットを返す
+      break;
+    default:
       *val = 0;
       break;
 	}

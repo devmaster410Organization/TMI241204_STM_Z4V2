@@ -34,6 +34,7 @@ void tsk_calc( void )
 {
 	uint8_t idx;
   g_sys.mode = MODE_MEASURE;
+  g_sys.mode_next = MODE_MEASURE;
 	init_sample_buf();
   Culc_vol_init();  //vol
 	Start_ADC_DMA();
@@ -62,6 +63,21 @@ void tsk_calc( void )
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,2.690710247E-4,0.30f, 0.10f, 0.995f, 1.30f );
 	
 	for(;;){
+    if( g_sys.mode_next != g_sys.mode ){
+        switch( g_sys.mode_next ){
+            case MODE_MEASURE:
+                // MODE_MEASUREへ移行するときの処理
+                break;
+            case MODE_SETUP:
+                // MODE_SETUPへ移行するときの処理
+                break;
+            default:
+                break;
+        }
+        g_sys.mode = g_sys.mode_next;
+    }
+
+
     if( sampling_t.adc1_callback_count_last != sampling_t.adc1_callback_count ){
       sampling_t.adc1_callback_count_last = sampling_t.adc1_callback_count;
       Process_ADC_Values( );

@@ -89,10 +89,13 @@ typedef enum{
 }sys_mode_t;
 
 typedef struct{
-    uint8_t dip_sw;
-    uint8_t setup_update;
-    uint8_t modbus_slave_address;
-    sys_mode_t mode;
+    uint8_t dip_sw; //現在のDIPSWの状態
+//-- setup
+    uint8_t setup_update; // 0: no update, 1: update requested. setup.cのtsk_setup内で1にセットされる。tsk_calc内で1を検知したら、setup.cのtsk_setupに通知するために0に戻す。
+    uint32_t setup_update_time;// setup_update == 1にした時のhal_tickの値
+//-- mode
+    sys_mode_t mode;  //
+    sys_mode_t mode_next; // モード遷移先。mode_next != mode のとき、modeをmode_nextに切り替える
 }sys_t;
 extern sys_t g_sys;
 
