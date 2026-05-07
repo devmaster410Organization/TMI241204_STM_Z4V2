@@ -91,7 +91,7 @@ typedef enum{
 typedef struct{
     uint8_t dip_sw; //現在のDIPSWの状態
 //-- setup
-    uint8_t setup_update; // 0: no update, 1: update requested. setup.cのtsk_setup内で1にセットされる。tsk_calc内で1を検知したら、setup.cのtsk_setupに通知するために0に戻す。
+    uint8_t setup_update; // 0: no update, 1: update requested. g_setup.cのtsk_setup内で1にセットされる。tsk_calc内で1を検知したら、g_setup.cのtsk_setupに通知するために0に戻す。
     uint32_t setup_update_time;// setup_update == 1にした時のhal_tickの値
 //-- mode
     sys_mode_t mode;  //
@@ -181,6 +181,7 @@ extern st_sampling_cb sampling_t;
 void Pase_init( void );
 void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state );
 uint32_t Get_cycle_time( uint16_t no );
+uint16_t GetVCycle( void );
 float GetVFreq( void );
 
 

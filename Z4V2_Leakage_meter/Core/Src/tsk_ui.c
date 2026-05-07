@@ -69,12 +69,12 @@ void tsk_ui( void )
   }
 }
 
-/// @brief change baud_rate to  strings
-/// @param baud_rate ()
+/// @brief change baudrate to  strings
+/// @param baudrate ()
 /// @return 
-const char* bps_string(uint8_t baud_rate)
+const char* bps_string(uint8_t baudrate)
 {
-  switch(baud_rate){
+  switch(baudrate){
     case 0: return "9600";
     case 1: return "19200";
     case 2: return "38400";
@@ -97,7 +97,7 @@ UI_Disp_enum ui_show_ver( void )
 
   ChlcdPrint( 0, 2, "Techno MIRAI" );
 
-  sprintf( (char*)lcd_str, "ID[%0d] %sBPS", setup.modbus_slave_address, bps_string(setup.baud_rate) );
+  sprintf( (char*)lcd_str, "ID[%0d] %sBPS", g_setup.modbus_slave_address, bps_string(g_setup.baudrate) );
   ChlcdPrint( 0, 3, lcd_str );
   for(int i=0;i<20;i++){
     ChlcdPrint( 0, 0, "Z4V2 LeakTester" );

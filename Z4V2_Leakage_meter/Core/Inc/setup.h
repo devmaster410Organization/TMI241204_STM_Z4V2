@@ -1,5 +1,5 @@
 /*
- * setup.h
+ * g_setup.h
  *
  *  Created on: Dec 19, 2021
  *      Author: user
@@ -16,7 +16,7 @@ typedef struct {
 
 typedef struct{
     uint8_t modbus_slave_address;
-	uint8_t baud_rate;
+	uint8_t baudrate;
 	uint8_t stop_bit;
 	uint8_t parity;
 	uint8_t bit_length;
@@ -36,6 +36,7 @@ typedef struct{
 	uint16_t sum;
 }setup_t;
 extern setup_t setup;
+#define g_setup setup
 extern const setup_t default_setup;
 extern const setup_t setup_max;
 extern const setup_t setup_min;

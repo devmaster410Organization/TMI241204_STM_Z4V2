@@ -9,7 +9,7 @@
 #include "modbus_reg.h"
 
 
-typedef {
+typedef struct {
   // read-only
   uint32_t  reg_inst_voltage[3];   // 電圧1〜3
   uint32_t  reg_inst_frequency[1]; // 周波数1
@@ -27,10 +27,10 @@ typedef {
   uint32_t reg_prm_time_info_hms;
 
   // write-only
-  uint16_t reg_prm_sys1_phase_wire_upper:
+  uint16_t reg_prm_sys1_phase_wire_upper;
   uint16_t reg_prm_leakage_ct_upper[8];
   uint16_t reg_prm_leakage_low_cut_upper;
-  uint16_t reg_cmd_avg_count_upper
+  uint16_t reg_cmd_avg_count_upper;
   uint16_t reg_prm_unit_no_upper;
   uint16_t reg_prm_baudrate_upper;
   uint16_t reg_prm_data_bit_upper;
@@ -128,20 +128,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       }
       break;
     case REG_PRM_SYS1_PHASE_WIRE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_sys1_phase_wire_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_SYS1_PHASE_WIRE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_sys1_phase_wire_upper;
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.ac_phase_wire, setup_max.ac_phase_wire ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.ac_phase_wire = tmp ; 
+          g_setup.ac_phase_wire = tmp ; 
           setup_update();
         }
       }else{
@@ -150,20 +150,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_LEAKAGE_CT1_TYPE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_leakage_ct_upper[0] = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_LEAKAGE_CT1_TYPE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[0];
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.ct_type[0], setup_max.ct_type[0] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.ct_type[0] = tmp ;
+          g_setup.ct_type[0] = tmp ;
           setup_update();
         }
       }else{
@@ -172,20 +172,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_LEAKAGE_CT2_TYPE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_leakage_ct_upper[1] = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_LEAKAGE_CT2_TYPE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[1];
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.ct_type[1], setup_max.ct_type[1] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.ct_type[1] = tmp ;
+          g_setup.ct_type[1] = tmp ;
           setup_update();
         }
       }else{
@@ -194,20 +194,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_LEAKAGE_CT3_TYPE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_leakage_ct_upper[2] = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_LEAKAGE_CT3_TYPE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[2];
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.ct_type[2], setup_max.ct_type[2] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.ct_type[2] = tmp ;
+          g_setup.ct_type[3] = tmp ;
           setup_update();
         }
       }else{
@@ -216,20 +216,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_LEAKAGE_CT4_TYPE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_leakage_ct_upper[3] = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_LEAKAGE_CT4_TYPE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_leakage_ct_upper[3];
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.ct_type[3], setup_max.ct_type[3] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.ct_type[2] = tmp ;
+          g_setup.ct_type[2] = tmp ;
           setup_update();
         }
       }else{
@@ -238,20 +238,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_LEAKAGE_LOW_CUT:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_leakage_low_cut_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_LEAKAGE_LOW_CUT+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_leakage_low_cut_upper;
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.leakage_low_cut, setup_max.leakage_low_cut ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.leakage_low_cut = tmp ;
+          g_setup.leakage_low_cut = tmp ;
           setup_update();
         }
       }else{
@@ -260,20 +260,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_AVG_COUNT:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_cmd_avg_count_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_AVG_COUNT+1:
-      if( sys.mode == MODE_SETUP ){
+      if(g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_cmd_avg_count_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.avg_count, setup_max.avg_count ) != 0 ){
+        if( check_parameter( tmp, setup_min.avarage_count, setup_max.avarage_count ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.avg_count = tmp ;
+          g_setup.avarage_count = tmp ;
           setup_update();
         }
       }else{
@@ -282,20 +282,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_UNIT_NO:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_unit_no_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_UNIT_NO+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_unit_no_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.unit_no, setup_max.unit_no ) != 0 ){
+        if( check_parameter( tmp, setup_min.modbus_slave_address, setup_max.modbus_slave_address ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.unit_no = tmp ;
+          g_setup.modbus_slave_address = tmp ;
           setup_update();
         }
       }else{
@@ -304,20 +304,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_BAUDRATE:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_baudrate_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_BAUDRATE+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_baudrate_upper;
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.baudrate, setup_max.baudrate ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.baudrate = tmp ;
+          g_setup.baudrate = tmp ;
           setup_update();
         }
       }else{
@@ -326,20 +326,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_DATA_BIT:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_data_bit_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_DATA_BIT+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_data_bit_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.data_bit, setup_max.data_bit ) != 0 ){
+        if( check_parameter( tmp, setup_min.bit_length, setup_max.bit_length ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.data_bit = tmp ;
+          g_setup.bit_length = tmp ;
           setup_update();
         }
       }else{
@@ -348,20 +348,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_STOP_BIT:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_stop_bit_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_STOP_BIT+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_stop_bit_upper;
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.stop_bit, setup_max.stop_bit ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.stop_bit = tmp ;
+          g_setup.stop_bit = tmp ;
           setup_update();
         }
       }else{
@@ -370,20 +370,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_PARITY:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_parity_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_PARITY+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_parity_upper;
         tmp = (tmp<<16) | (uint16_t)data;
         if( check_parameter( tmp, setup_min.parity, setup_max.parity ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.parity = tmp ;
+          g_setup.parity = tmp ;
           setup_update();
         }
       }else{
@@ -392,20 +392,20 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       break;
 
     case REG_PRM_TX_WAIT_TIME:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         modbusbuf.reg_prm_tx_wait_timer_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_TX_WAIT_TIME+1:
-      if( sys.mode == MODE_SETUP ){
+      if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_tx_wait_timer_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.tx_wait_time, setup_max.tx_wait_time ) != 0 ){
+        if( check_parameter( tmp, setup_min.response_delay_ms, setup_max.response_delay_ms ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          setup.tx_wait_time = tmp ;
+          g_setup.response_delay_ms = tmp ;
           setup_update();
         }
       }else{
@@ -462,7 +462,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_FREQUENCY_1:
-      modbusbuf.reg_inst_frequency[0] = sampling_t.frequency*10.0;
+      modbusbuf.reg_inst_frequency[0] = GetVFreq()*10.0f;
       *val = modbusbuf.reg_inst_frequency[0]>>16; // 上位16ビットを返す
       break;
      case REG_INST_FREQUENCY_1+1:
@@ -618,7 +618,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       *val = modbusbuf.reg_min_leakage[3]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_VERSION:
-      modbusbuf.reg_version = 0x00000000 // バージョン を表す値 (上位16ビットがメジャーバージョン、下位16ビットがマイナーバージョン)
+      modbusbuf.reg_version = 0x00000000; // バージョン を表す値 (上位16ビットがメジャーバージョン、下位16ビットがマイナーバージョン)
       *val = 0x0000; // バージョン 1.00  を表す値
       break;
     case REG_VERSION+1:
@@ -633,11 +633,11 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_PRM_SYS1_PHASE_WIRE:
-      *val = setup.ac_phase_wire>>16; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      *val = g_setup.ac_phase_wire>>16; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
       break;
 
     case REG_PRM_SYS1_PHASE_WIRE+1:
-      *val = setup.ac_phase_wire&0xFFFF; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
+      *val = g_setup.ac_phase_wire&0xFFFF; // 系統1 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
       break;
     case REG_PRM_SYS2_PHASE_WIRE:
       *val = 0; // 系統2 適用相線式 を表す値 (例: 0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
@@ -652,28 +652,28 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       *val = 0; // 計測ブロック1 同期選択 を表す値 (例: 0:系統1, 1:系統2)
       break;
     case REG_PRM_LEAKAGE_CT1_TYPE:
-      *val = setup.ct_type[0]>>16; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[0]>>16; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break;
     case REG_PRM_LEAKAGE_CT1_TYPE+1:
-      *val = setup.ct_type[0]&0xFFFF; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[0]&0xFFFF; // 漏電CT1タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break; 
     case REG_PRM_LEAKAGE_CT2_TYPE:
-      *val = setup.ct_type[1]>>16; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[1]>>16; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break;
     case REG_PRM_LEAKAGE_CT2_TYPE+1:
-      *val = setup.ct_type[1]&0xFFFF; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[1]&0xFFFF; // 漏電CT2タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break; 
     case REG_PRM_LEAKAGE_CT3_TYPE:
-      *val = setup.ct_type[2]>>16; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[2]>>16; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break;
     case REG_PRM_LEAKAGE_CT3_TYPE+1:
-      *val = setup.ct_type[2]&0xFFFF; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[2]&0xFFFF; // 漏電CT3タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break; 
     case REG_PRM_LEAKAGE_CT4_TYPE:
-      *val = setup.ct_type[3]>>16; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[3]>>16; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break;
     case REG_PRM_LEAKAGE_CT4_TYPE+1:
-      *val = setup.ct_type[3]&0xFFFF; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
+      *val = g_setup.ct_type[3]&0xFFFF; // 漏電CT4タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
       break; 
     case REG_PRM_LEAKAGE_CT5_TYPE:
       *val = 0; // 漏電CT5タイプ を表す値 (例: 0:クランプCT, 1:貫通CT)
@@ -701,55 +701,55 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break; 
 
     case REG_PRM_LEAKAGE_LOW_CUT:
-      modbusbuf.reg_prm_leakage_low_cut = setup.leakage_low_cut*10.0f; // 漏電ローカット電流値 0.1mA を表す値
+      modbusbuf.reg_prm_leakage_low_cut = (uint32_t)(g_setup.leakage_low_cut*10.0f); // 漏電ローカット電流値 0.1mA を表す値
       *val = modbusbuf.reg_prm_leakage_low_cut>>16; // 上位16ビットを返す
       break;
     case REG_PRM_LEAKAGE_LOW_CUT+1:
-      *val = modbusbuf.reg_prm_leakage_low_cut&0xFFFF; // 下位16ビットを返す
+      *val = modbusbuf.reg_prm_leakage_low_cut & 0xFFFF; // 下位16ビットを返す
       break;
 
     case REG_PRM_AVG_COUNT:
       *val = 0;
       break;
     case REG_PRM_AVG_COUNT+1:
-      *val = setup.avg_count; // 平均化回数 を表す値 (例: 10)
+      *val = g_setup.avarage_count; // 平均化回数 を表す値 (例: 10)
       break;
 
     case REG_PRM_UNIT_NO:
-      *val = setup.modbus_slave_address>>16; // ユニット番号 を表す値
+      *val = g_setup.modbus_slave_address>>16; // ユニット番号 を表す値
       break;
     case REG_PRM_UNIT_NO+1:
-      *val = setup.modbus_slave_address&0xFFFF; // ユニット番号 を表す値
+      *val = g_setup.modbus_slave_address&0xFFFF; // ユニット番号 を表す値
       break;
     case REG_PRM_BAUDRATE:
-      *val = setup.baudrate>>16; // 通信速度 を表す値 (例: 9600)
+      *val = g_setup.baudrate>>16; // 通信速度 を表す値 (例: 9600)
       break;
     case REG_PRM_BAUDRATE+1:
-      *val = setup.baudrate&0xFFFF; // 通信速度 を表す値 (例: 9600)
+      *val = g_setup.baudrate&0xFFFF; // 通信速度 を表す値 (例: 9600)
       break;
     case REG_PRM_DATA_BIT:
-      *val = setup.bit_length >>16; // データビット長 を表す値 (例: 8)
+      *val = g_setup.bit_length >>16; // データビット長 を表す値 (例: 8)
       break;
     case REG_PRM_DATA_BIT+1:
-      *val = setup.bit_length & 0xFFFF; // データビット長 を表す値 (例: 8)
+      *val = g_setup.bit_length & 0xFFFF; // データビット長 を表す値 (例: 8)
       break;
     case REG_PRM_STOP_BIT:
-      *val = setup.stop_bit >>16; // ストップビット長 を表す値 (例: 1)
+      *val = g_setup.stop_bit >>16; // ストップビット長 を表す値 (例: 1)
       break;
     case REG_PRM_STOP_BIT+1:
-      *val = setup.stop_bit & 0xFFFF; // ストップビット長 を表す値 (例: 1)
+      *val = g_setup.stop_bit & 0xFFFF; // ストップビット長 を表す値 (例: 1)
       break;
     case REG_PRM_PARITY:
-      *val = setup.parity >>16; // 垂直パリティ
+      *val = g_setup.parity >>16; // 垂直パリティ
       break;
     case REG_PRM_PARITY+1:
-      *val = setup.parity & 0xFFFF; // 垂直パリティ
+      *val = g_setup.parity & 0xFFFF; // 垂直パリティ
       break;  
     case REG_PRM_TX_WAIT_TIME:
-      *val = setup.response_delay_ms >>16; // 送信待ち時間 を表す値 (例: 100ms)
+      *val = g_setup.response_delay_ms >>16; // 送信待ち時間 を表す値 (例: 100ms)
       break;
     case REG_PRM_TX_WAIT_TIME+1:
-      *val = setup.response_delay_ms & 0xFFFF; // 送信待ち時間 を表す値 (例: 100ms)
+      *val = g_setup.response_delay_ms & 0xFFFF; // 送信待ち時間 を表す値 (例: 100ms)
       break;  
     case REG_PRM_LINK_CONFIG:
       *val = 0; // 連結構成 を表す値 (例: 0: 非連結, 1: 連結)

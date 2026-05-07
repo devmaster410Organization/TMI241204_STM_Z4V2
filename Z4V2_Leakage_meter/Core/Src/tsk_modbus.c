@@ -157,7 +157,7 @@ void MODBUS_init(void) {
 	memset(MDBS_set_reg_rsv,0,sizeof(MDBS_set_reg_rsv));
 
 	tModBus.silent_limmit = 10;
-	g_sys.modbus_slave_address = 10;
+	g_setup.modbus_slave_address = 10;
 }
 
 
@@ -246,7 +246,7 @@ PORT_TGL(TP8);
 		goto err;
 	}
 	tModBus.slave_add = *pub;
-	if ((tModBus.slave_add != 0) && (tModBus.slave_add != g_sys.modbus_slave_address)) {	//自分と関係ないパケット
+	if ((tModBus.slave_add != 0) && (tModBus.slave_add != g_setup.modbus_slave_address)) {	//自分と関係ないパケット
 		goto err;
 	}
 	pub++;
@@ -272,7 +272,7 @@ PORT_TGL(TP8);
 		crc1 = CRC_calc(ptop, pub - ptop);
 		crc2 = get_uword_le(pub);
 		if (crc1 == crc2) {
-			if (tModBus.slave_add == g_sys.modbus_slave_address) { //自IDの時のみ
+			if (tModBus.slave_add == g_setup.modbus_slave_address) { //自IDの時のみ
 				sub_func_read_n(ptop);
 				rspflg = 1;
 			}
@@ -304,7 +304,7 @@ PORT_TGL(TP8);
 		crc2 = get_uword_le(pub);
 		if (crc1 == crc2) {
 			sub_func_write_n(ptop);
-			if (tModBus.slave_add == g_sys.modbus_slave_address) {
+			if (tModBus.slave_add == g_setup.modbus_slave_address) {
 				rspflg = 1;
 			}
 			// 送信する。
@@ -323,9 +323,9 @@ PORT_TGL(TP8);
 		crc2 = get_uword_le(pub);
 
 		if (crc1 == crc2) {
-			if ((tModBus.slave_add == g_sys.modbus_slave_address) || (tModBus.slave_add == 0)) {
+			if ((tModBus.slave_add == g_setup.modbus_slave_address) || (tModBus.slave_add == 0)) {
 				sub_func_write_1(ptop);
-				if (tModBus.slave_add == g_sys.modbus_slave_address) {
+				if (tModBus.slave_add == g_setup.modbus_slave_address) {
 					rspflg = 1;
 				}
 			}
@@ -551,7 +551,7 @@ static void sub_func_echoback(uint8_t rcv[]) {
 static void sub_error_code(uint8_t errcode) {
 	uint8_t *pub;
 	tModBus.txcnt = 0;
-	if (tModBus.slave_add == g_sys.modbus_slave_address) {
+	if (tModBus.slave_add == g_setup.modbus_slave_address) {
 		pub = &tModBus.txbuf[0];
 		*pub = tModBus.slave_add;
 		pub++;
