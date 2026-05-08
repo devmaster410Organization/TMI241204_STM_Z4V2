@@ -15,13 +15,14 @@ typedef struct {
 } calib_param_t;  // Calibration Parameterの略
 
 typedef struct{
+	// modbus parameters
     uint8_t modbus_slave_address;
 	uint8_t baudrate;
 	uint8_t stop_bit;
 	uint8_t parity;
 	uint8_t bit_length;
 	uint16_t response_delay_ms;
-	uint16_t check_sum;
+
 	float leakage_low_cut; // 漏電ローカット電流値 (0.1～30.0mA)
 	uint8_t ac_phase_wire; // 相線式 (0:単相2線, 1:単相3線, 2:三相3線, 3:三相4線)
 	uint8_t ct_type[4]; // CTタイプ (0:クランプCT, 1:貫通CT) を表す値

@@ -23,6 +23,7 @@ extern uint16_t CRC_calc(uint8_t *nData, uint16_t wLength);
 
 // prottype
 void tsk_rs485(void);
+static void MX_USART3_UART_Init_MODBUS(void);
 static void uart_init(void);
 void tsk_modbus_slave(void);
 void MODBUS_init(void);
@@ -41,6 +42,7 @@ static void sub_error_code(uint8_t errcode);
 void tsk_modbus_slave( void )
 {
 	uart_init();
+	MX_USART3_UART_Init_MODBUS();
 	osDelay(1500);
 
 	for(;;){
@@ -138,19 +140,80 @@ int16_t MDBS_set_reg_rsv[16];
 
 
 
+/**
+  * @brief USART3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART3_UART_Init_MODBUS(void)
+{
+
+  /* USER CODE BEGIN USART3_Init 0 */
+
+  /* USER CODE END USART3_Init 0 */
+
+  /* USER CODE BEGIN USART3_Init 1 */
+
+  /* USER CODE END USART3_Init 1 */
+  huart3.Instance = USART3;
+  switch(g_setup.baudrate){
+	case PRM_BAUDRATE_115200:		huart3.Init.BaudRate = 115200;		break;
+	case PRM_BAUDRATE_57600:		huart3.Init.BaudRate = 57600;		break;
+	case PRM_BAUDRATE_38400:		huart3.Init.BaudRate = 38400;		break;
+	case PRM_BAUDRATE_19200:		huart3.Init.BaudRate = 19200;		break;
+	case PRM_BAUDRATE_9600:			huart3.Init.BaudRate = 9600;		break;
+	default:						huart3.Init.BaudRate = 38400;		break;
+  }
+  switch(g_setup.bit_length){
+	case PRM_DATA_BIT_7:			huart3.Init.WordLength = UART_WORDLENGTH_7B;	break;	
+	case PRM_DATABITS_8:			huart3.Init.WordLength = UART_WORDLENGTH_8B;	break;
+	default:						huart3.Init.WordLength = UART_WORDLENGTH_8B;	break;
+  }
+  switch(g_setup.stop_bit){
+	case PRM_STOP_BIT_1:			huart3.Init.StopBits = UART_STOPBITS_1;		break;
+	case PRM_STOP_BIT_2:			huart3.Init.StopBits = UART_STOPBITS_2;		break;
+	default:						huart3.Init.StopBits = UART_STOPBITS_1;		break;
+  }
+  switch(g_setup.parparityity){
+	case PRM_PARITY_NONE:			huart3.Init.Parity = UART_PARITY_NONE;		break;
+	case PRM_PARITY_EVEN:			huart3.Init.Parity = UART_PARITY_EVEN;		break;
+	case PRM_PARITY_ODD:			huart3.Init.Parity = UART_PARITY_ODD;		break;
+	default:						huart3.Init.Parity = UART_PARITY_NONE;		break;
+  }
+
+  huart3.Init.Mode = UART_MODE_TX_RX;
+  huart3.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart3.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart3.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart3.Init.ClockPrescaler = UART_PRESCALER_DIV1;
+  huart3.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
+  if (HAL_RS485Ex_Init(&huart3, UART_DE_POLARITY_HIGH, 0, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetTxFifoThreshold(&huart3, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_SetRxFifoThreshold(&huart3, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_UARTEx_EnableFifoMode(&huart3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART3_Init 2 */
+
+  /* USER CODE END USART3_Init 2 */
+
+}
 
 void MODBUS_init(void) {
 	tModBus.mode = XPMODE_WAIT;
 	tModBus.rcvbufp = 0;
-/*
-	g_sys.dip_sw = get_dsw();
 
-	if(g_sys.dip_sw & DSW_BPS ){	// bps	
-		tUartRs485.phuart->Instance->BRR = 5000;//9600
-	}else{
-		tUartRs485.phuart->Instance->BRR = 1250; //38400bps		
-	}
-*/
 
 	memset(MDBS_set_reg_com,0,sizeof(MDBS_set_reg_com));
 	memset(MDBS_set_reg_rcv,0,sizeof(MDBS_set_reg_rcv));
@@ -359,7 +422,7 @@ PORT_TGL(TP8);
 		 tslp_tsk( tRemote.respdelay*10 );
 		 }
 		 */
-		//osDelay(2);
+		osDelay(g_setup.response_delay_ms);
 
 		UART_nputs(&tUartRs485, (char*) tModBus.txbuf, tModBus.txcnt);
 		while( UART_isSending(&tUartRs485)  ){
