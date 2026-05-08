@@ -1,0 +1,13 @@
+../Core/Src/tsk_modbus.c:42:6:tsk_modbus_slave	1
+../Core/Src/tsk_modbus.c:56:13:uart_init	1
+../Core/Src/tsk_modbus.c:148:13:MX_USART3_UART_Init_MODBUS	18
+../Core/Src/tsk_modbus.c:213:6:MODBUS_init	1
+../Core/Src/tsk_modbus.c:231:5:MODBUSrtu_slave_job	12
+../Core/Src/tsk_modbus.c:299:13:analyze_modbus_rtu	25
+../Core/Src/tsk_modbus.c:439:12:crc_check	2
+../Core/Src/tsk_modbus.c:457:13:make_err_code	1
+../Core/Src/tsk_modbus.c:473:13:sub_func_read_n	4
+../Core/Src/tsk_modbus.c:515:13:sub_func_write_n	3
+../Core/Src/tsk_modbus.c:556:13:sub_func_write_1	2
+../Core/Src/tsk_modbus.c:585:13:sub_func_echoback	2
+../Core/Src/tsk_modbus.c:614:13:sub_error_code	2

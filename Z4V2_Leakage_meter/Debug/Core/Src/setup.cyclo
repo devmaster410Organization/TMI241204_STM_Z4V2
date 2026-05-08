@@ -1,0 +1,2 @@
+../Core/Src/setup.c:85:5:SETUP_write	5
+../Core/Src/setup.c:113:5:SETUP_read	3

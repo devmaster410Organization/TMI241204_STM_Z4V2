@@ -97,7 +97,7 @@ UI_Disp_enum ui_show_ver( void )
 
   ChlcdPrint( 0, 2, "Techno MIRAI" );
 
-  sprintf( (char*)lcd_str, "ID[%0d] %sBPS", g_setup.modbus_slave_address, bps_string(g_setup.baudrate) );
+  sprintf( (char*)lcd_str, "ID[%0d] %sBPS", g_setup.modbus_slave_address, bps_string(g_setup.rs485_baudrate) );
   ChlcdPrint( 0, 3, lcd_str );
   for(int i=0;i<20;i++){
     ChlcdPrint( 0, 0, "Z4V2 LeakTester" );

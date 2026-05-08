@@ -19,10 +19,10 @@ static setup_t tsetupwork __attribute__ ((aligned(4)));	// 関数に渡すとき
 
 const setup_t setup_default = {
 	.modbus_slave_address = 1,
-	.baudrate = PRM_BAUDRATE_38400,
-	.stop_bit = PRM_STOP_BIT_1,
-	.parity = PRM_PARITY_EVEN,
-	.bit_length = PRM_DATA_BIT_8,
+	.rs485_baudrate = PRM_BAUDRATE_38400,
+	.rs485_stop_bit = PRM_STOP_BIT_1,
+	.rs485_parity = PRM_PARITY_EVEN,
+	.rs485_bit_length = PRM_DATA_BIT_8,
 	.response_delay_ms = 0,
 	.leakage_low_cut = 0.1f,
 	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
@@ -35,15 +35,15 @@ const setup_t setup_default = {
 
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
-	.sum = 0
+	.check_sum = 0
 };	
 
 const setup_t setup_max = {
 	.modbus_slave_address = 1,
-	.baudrate = PRM_BAUDRATE_115200,
-	.stop_bit = PRM_STOP_BIT_2,
-	.parity = PRM_PARITY_ODD,
-	.bit_length = PRM_DATA_BIT_8,
+	.rs485_baudrate = PRM_BAUDRATE_115200,
+	.rs485_stop_bit = PRM_STOP_BIT_2,
+	.rs485_parity = PRM_PARITY_ODD,
+	.rs485_bit_length = PRM_DATA_BIT_8,
 	.response_delay_ms = 100,
 	.leakage_low_cut = 100.0f,
 	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
@@ -56,15 +56,15 @@ const setup_t setup_max = {
 
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
-	.sum = 0
+	.check_sum = 0
 };	
 
 const setup_t setup_min = {
 	.modbus_slave_address = 1,
-	.baudrate = PRM_BAUDRATE_9600,
-	.stop_bit = PRM_STOP_BIT_1,
-	.parity = PRM_PARITY_NONE,
-	.bit_length = PRM_DATA_BIT_7,
+	.rs485_baudrate = PRM_BAUDRATE_9600,
+	.rs485_stop_bit = PRM_STOP_BIT_1,
+	.rs485_parity = PRM_PARITY_NONE,
+	.rs485_bit_length = PRM_DATA_BIT_7,
 	.response_delay_ms = 0,
 	.leakage_low_cut = 0.0f,
 	.ac_phase_wire = PRM_PHASE_WIRE_3P4W,
@@ -77,7 +77,7 @@ const setup_t setup_min = {
 
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
-	.sum = 0
+	.check_sum = 0
 };	
 
 

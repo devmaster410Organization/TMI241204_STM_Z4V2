@@ -17,10 +17,10 @@ typedef struct {
 typedef struct{
 	// modbus parameters
     uint8_t modbus_slave_address;
-	uint8_t baudrate;
-	uint8_t stop_bit;
-	uint8_t parity;
-	uint8_t bit_length;
+	uint8_t rs485_baudrate;
+	uint8_t rs485_stop_bit;
+	uint8_t rs485_parity;
+	uint8_t rs485_bit_length;
 	uint16_t response_delay_ms;
 
 	float leakage_low_cut; // 漏電ローカット電流値 (0.1～30.0mA)
@@ -34,7 +34,7 @@ typedef struct{
 	//一次補正 y = ax + b の a,b
 	calib_param_t volt_calib[2];
     calib_param_t leakage_calib[4];
-	uint16_t sum;
+	uint16_t check_sum;
 }setup_t;
 extern setup_t setup;
 #define g_setup setup

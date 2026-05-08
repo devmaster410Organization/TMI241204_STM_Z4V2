@@ -34,7 +34,7 @@ typedef struct {
   uint16_t reg_prm_unit_no_upper;
   uint16_t reg_prm_baudrate_upper;
   uint16_t reg_prm_data_bit_upper;
-  uint16_t reg_prm_stop_bit_upper;
+  uint16_t reg_prm_rs485_stop_bit_upper;
   uint16_t reg_prm_parity_upper;
   uint16_t reg_prm_tx_wait_timer_upper;
   uint16_t reg_cmd_operation;
@@ -314,10 +314,10 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_baudrate_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.baudrate, setup_max.baudrate ) != 0 ){
+        if( check_parameter( tmp, setup_min.rs485_baudrate, setup_max.rs485_baudrate ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.baudrate = tmp ;
+          g_setup.rs485_baudrate = tmp ;
           setup_update();
         }
       }else{
@@ -336,10 +336,10 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_data_bit_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.bit_length, setup_max.bit_length ) != 0 ){
+        if( check_parameter( tmp, setup_min.rs485_bit_length, setup_max.rs485_bit_length ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.bit_length = tmp ;
+          g_setup.rs485_bit_length = tmp ;
           setup_update();
         }
       }else{
@@ -349,19 +349,19 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 
     case REG_PRM_STOP_BIT:
       if( g_sys.mode == MODE_SETUP ){
-        modbusbuf.reg_prm_stop_bit_upper = data;
+        modbusbuf.reg_prm_rs485_stop_bit_upper = data;
       }else{
         ret = EXCEPTION_CODE_ILLEGAL_FUNCTION; // 設定モード以外では書き込み不可
       }
       break;
     case REG_PRM_STOP_BIT+1:
       if( g_sys.mode == MODE_SETUP ){
-        uint32_t tmp = modbusbuf.reg_prm_stop_bit_upper;
+        uint32_t tmp = modbusbuf.reg_prm_rs485_stop_bit_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.stop_bit, setup_max.stop_bit ) != 0 ){
+        if( check_parameter( tmp, setup_min.rs485_stop_bit, setup_max.rs485_stop_bit ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.stop_bit = tmp ;
+          g_setup.rs485_stop_bit = tmp ;
           setup_update();
         }
       }else{
@@ -380,10 +380,10 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
       if( g_sys.mode == MODE_SETUP ){
         uint32_t tmp = modbusbuf.reg_prm_parity_upper;
         tmp = (tmp<<16) | (uint16_t)data;
-        if( check_parameter( tmp, setup_min.parity, setup_max.parity ) != 0 ){
+        if( check_parameter( tmp, setup_min.rs485_parity, setup_max.rs485_parity ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.parity = tmp ;
+          g_setup.rs485_parity = tmp ;
           setup_update();
         }
       }else{
@@ -722,28 +722,28 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       *val = g_setup.modbus_slave_address&0xFFFF; // ユニット番号 を表す値
       break;
     case REG_PRM_BAUDRATE:
-      *val = g_setup.baudrate>>16; // 通信速度 を表す値 (例: 9600)
+      *val = g_setup.rs485_baudrate>>16; // 通信速度 を表す値 (例: 9600)
       break;
     case REG_PRM_BAUDRATE+1:
-      *val = g_setup.baudrate&0xFFFF; // 通信速度 を表す値 (例: 9600)
+      *val = g_setup.rs485_baudrate&0xFFFF; // 通信速度 を表す値 (例: 9600)
       break;
     case REG_PRM_DATA_BIT:
-      *val = g_setup.bit_length >>16; // データビット長 を表す値 (例: 8)
+      *val = g_setup.rs485_bit_length >>16; // データビット長 を表す値 (例: 8)
       break;
     case REG_PRM_DATA_BIT+1:
-      *val = g_setup.bit_length & 0xFFFF; // データビット長 を表す値 (例: 8)
+      *val = g_setup.rs485_bit_length & 0xFFFF; // データビット長 を表す値 (例: 8)
       break;
     case REG_PRM_STOP_BIT:
-      *val = g_setup.stop_bit >>16; // ストップビット長 を表す値 (例: 1)
+      *val = g_setup.rs485_stop_bit >>16; // ストップビット長 を表す値 (例: 1)
       break;
     case REG_PRM_STOP_BIT+1:
-      *val = g_setup.stop_bit & 0xFFFF; // ストップビット長 を表す値 (例: 1)
+      *val = g_setup.rs485_stop_bit & 0xFFFF; // ストップビット長 を表す値 (例: 1)
       break;
     case REG_PRM_PARITY:
-      *val = g_setup.parity >>16; // 垂直パリティ
+      *val = g_setup.rs485_parity >>16; // 垂直パリティ
       break;
     case REG_PRM_PARITY+1:
-      *val = g_setup.parity & 0xFFFF; // 垂直パリティ
+      *val = g_setup.rs485_parity & 0xFFFF; // 垂直パリティ
       break;  
     case REG_PRM_TX_WAIT_TIME:
       *val = g_setup.response_delay_ms >>16; // 送信待ち時間 を表す値 (例: 100ms)

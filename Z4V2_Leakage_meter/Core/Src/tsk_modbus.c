@@ -156,7 +156,7 @@ static void MX_USART3_UART_Init_MODBUS(void)
 
   /* USER CODE END USART3_Init 1 */
   huart3.Instance = USART3;
-  switch(g_setup.baudrate){
+  switch(g_setup.rs485_baudrate){
 	case PRM_BAUDRATE_115200:		huart3.Init.BaudRate = 115200;		break;
 	case PRM_BAUDRATE_57600:		huart3.Init.BaudRate = 57600;		break;
 	case PRM_BAUDRATE_38400:		huart3.Init.BaudRate = 38400;		break;
@@ -164,17 +164,17 @@ static void MX_USART3_UART_Init_MODBUS(void)
 	case PRM_BAUDRATE_9600:			huart3.Init.BaudRate = 9600;		break;
 	default:						huart3.Init.BaudRate = 38400;		break;
   }
-  switch(g_setup.bit_length){
+  switch(g_setup.rs485_bit_length){
 	case PRM_DATA_BIT_7:			huart3.Init.WordLength = UART_WORDLENGTH_7B;	break;	
-	case PRM_DATABITS_8:			huart3.Init.WordLength = UART_WORDLENGTH_8B;	break;
+	case PRM_DATA_BIT_8:			huart3.Init.WordLength = UART_WORDLENGTH_8B;	break;
 	default:						huart3.Init.WordLength = UART_WORDLENGTH_8B;	break;
   }
-  switch(g_setup.stop_bit){
+  switch(g_setup.rs485_stop_bit){
 	case PRM_STOP_BIT_1:			huart3.Init.StopBits = UART_STOPBITS_1;		break;
 	case PRM_STOP_BIT_2:			huart3.Init.StopBits = UART_STOPBITS_2;		break;
 	default:						huart3.Init.StopBits = UART_STOPBITS_1;		break;
   }
-  switch(g_setup.parparityity){
+  switch(g_setup.rs485_parity){
 	case PRM_PARITY_NONE:			huart3.Init.Parity = UART_PARITY_NONE;		break;
 	case PRM_PARITY_EVEN:			huart3.Init.Parity = UART_PARITY_EVEN;		break;
 	case PRM_PARITY_ODD:			huart3.Init.Parity = UART_PARITY_ODD;		break;
