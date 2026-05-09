@@ -1,9 +1,8 @@
 ../Core/Src/chlcd.c:73:6:delay_us	2
+../Core/Src/chlcd.c:123:13:wait_lcdready	1
 ../Core/Src/chlcd.c:82:7:lcd_db_out_low4	5
 ../Core/Src/chlcd.c:94:7:lcd_db_out_high4	5
 ../Core/Src/chlcd.c:112:7:ChlcdVersion	1
-../Core/Src/chlcd.c:123:13:wait_lcdready	1
-../Core/Src/chlcd.c:134:13:wait_loop	3
 ../Core/Src/chlcd.c:148:6:lcd_hard_init	1
 ../Core/Src/chlcd.c:209:6:ChlcdCursorOff	1
 ../Core/Src/chlcd.c:223:6:ChlcdCursorOn	1

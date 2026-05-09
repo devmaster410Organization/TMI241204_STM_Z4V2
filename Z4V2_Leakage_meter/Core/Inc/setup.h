@@ -28,9 +28,10 @@ typedef struct{
 	uint8_t ct_type[4]; // CTタイプ (0:クランプCT, 1:貫通CT) を表す値
 	uint16_t avarage_count; // 平均化に使用するサンプル数 (例: 10)		
 
-	uint8_t tcpDesconip[4];
+/*	uint8_t tcpDesconip[4];
 	uint16_t tcpDesconPort;
 	uint16_t tcpDescon_silent_timeout; // TCP切断のタイムアウト時間	
+*/
 	//一次補正 y = ax + b の a,b
 	calib_param_t volt_calib[2];
     calib_param_t leakage_calib[4];

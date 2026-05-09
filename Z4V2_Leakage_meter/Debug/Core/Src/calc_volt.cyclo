@@ -6,8 +6,8 @@
 ../Core/Src/calc_volt.c:119:6:adj_centor	7
 ../Core/Src/calc_volt.c:152:5:culc_vol	6
 ../Core/Src/calc_volt.c:181:5:Culc_vol	2
-../Core/Src/calc_volt.c:199:6:GetVValues	2
-../Core/Src/calc_volt.c:206:6:GetVMaxValues	2
-../Core/Src/calc_volt.c:213:6:GetVMinValues	2
+../Core/Src/calc_volt.c:199:6:GetVValues	3
+../Core/Src/calc_volt.c:206:6:GetVMaxValues	3
+../Core/Src/calc_volt.c:213:6:GetVMinValues	3
 ../Core/Src/calc_volt.c:223:6:Calc_ResetMinVoltValue	2
 ../Core/Src/calc_volt.c:231:6:Calc_ResetMaxVoltValue	2

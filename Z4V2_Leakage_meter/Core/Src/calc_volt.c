@@ -32,7 +32,7 @@ static T_AC tAc;
 
 
 //電圧の換算定数
-#define CONST_A (0.00007503242452)  
+#define CONST_A (0.00007503242452f)
 #define CONST_B	0
 #define BASE_NOISE 0 //85518 
 #define	CONST_ROOT2	1.41421356f
@@ -42,14 +42,14 @@ static T_AC tAc;
 
 float CnvVolAbs( int32_t cur_ad_integ, float timsec )
 {
-	double fans;
+	float fans;
 	fans = (((float)cur_ad_integ/timsec)-BASE_NOISE);
-	if(fans<0.0){
-		fans=0;
+	if(fans < 0.0f){
+		fans = 0.0f;
 	}else{
 		fans  = CONST_A*fans;
 	}
-	return (float)fans;
+	return fans;
 }
 
 
@@ -57,10 +57,10 @@ float CnvVolAbs( int32_t cur_ad_integ, float timsec )
 // ±そのままの出力変換
 float CnvVolBi( int32_t cur_ad_integ, float timsec )
 {
-	double fans;
+	float fans;
 	fans = (((float)cur_ad_integ/timsec)-BASE_NOISE);
 	fans  = CONST_A*fans;
-	return (float)fans;
+	return fans;
 }
 
 /// @brief 
@@ -132,10 +132,10 @@ void adj_centor(int16_t *adcv)
 			if(tAc.adc_center_first_flg ){	//　first time 
 				tAc.adc_center[j] = center;				
 			}else{
-				if( (tAc.adc_center[j]-1.0) > center){//粗調整
-					tAc.adc_center[j] -= 1.0;
-				}else if( (tAc.adc_center[j]+1.0) < center){//粗調整
-					tAc.adc_center[j] += 1.0;
+				if( (tAc.adc_center[j] - 1.0f) > center){//粗調整
+					tAc.adc_center[j] -= 1.0f;
+				}else if( (tAc.adc_center[j] + 1.0f) < center){//粗調整
+					tAc.adc_center[j] += 1.0f;
 				}else{	//微調整
 					tAc.adc_center[j] = center;
 				}

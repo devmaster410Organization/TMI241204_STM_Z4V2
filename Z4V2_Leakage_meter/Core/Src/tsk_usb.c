@@ -14,6 +14,7 @@
  */
 #include <ctype.h>
 #include "prj.h"
+#include "usbd_cdc.h"
 
 extern osMessageQId usbRcvQueue01Handle;
 extern uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
@@ -25,10 +26,49 @@ static uint16_t usbGetChar( uint32_t timeout );
 static void usbUngetChar( uint16_t c);
 static void usbEchoBack( char c);
 static int cmd_set(  void );
+static int cmd_get(  void );
 static int cmd_status(  void );
+static int copy_word_to_buf( uint16_t index, char *out, size_t out_size );
+static bool parse_u32_token( const char *token, uint32_t *out );
+static bool parse_u8_token( const char *token, uint8_t *out );
+static bool parse_u16_token( const char *token, uint16_t *out );
+static bool parse_ipv4_token( const char *token, uint8_t ip[4] );
+static bool is_valid_float_token( const char *token );
+static bool parse_float_token( const char *token, float *out );
+static void show_setup_param_help( void );
+static void print_setup_param( const char *param );
+static void print_all_setup_params( void );
+static int set_setup_param( const char *param, const char *value );
+
+/* Setup parameter name string constants (one copy shared across all functions) */
+static const char * const PSTR_MODBUS_SLAVE_ADDRESS  = "modbus_slave_address";
+static const char * const PSTR_RS485_BAUDRATE        = "rs485_baudrate";
+static const char * const PSTR_RS485_STOP_BIT        = "rs485_stop_bit";
+static const char * const PSTR_RS485_PARITY          = "rs485_parity";
+static const char * const PSTR_RS485_BIT_LENGTH      = "rs485_bit_length";
+static const char * const PSTR_RESPONSE_DELAY_MS     = "response_delay_ms";
+static const char * const PSTR_LEAKAGE_LOW_CUT       = "leakage_low_cut";
+static const char * const PSTR_AC_PHASE_WIRE         = "ac_phase_wire";
+static const char * const PSTR_CT_TYPE1              = "ct_type1";
+static const char * const PSTR_CT_TYPE2              = "ct_type2";
+static const char * const PSTR_CT_TYPE3              = "ct_type3";
+static const char * const PSTR_CT_TYPE4              = "ct_type4";
+static const char * const PSTR_AVARAGE_COUNT         = "avarage_count";
+static const char * const PSTR_VOLT_CALIB1_GAIN      = "volt_calib1_gain";
+static const char * const PSTR_VOLT_CALIB1_OFFSET    = "volt_calib1_offset";
+static const char * const PSTR_VOLT_CALIB2_GAIN      = "volt_calib2_gain";
+static const char * const PSTR_VOLT_CALIB2_OFFSET    = "volt_calib2_offset";
+static const char * const PSTR_LEAKAGE_CALIB1_GAIN   = "leakage_calib1_gain";
+static const char * const PSTR_LEAKAGE_CALIB1_OFFSET = "leakage_calib1_offset";
+static const char * const PSTR_LEAKAGE_CALIB2_GAIN   = "leakage_calib2_gain";
+static const char * const PSTR_LEAKAGE_CALIB2_OFFSET = "leakage_calib2_offset";
+static const char * const PSTR_LEAKAGE_CALIB3_GAIN   = "leakage_calib3_gain";
+static const char * const PSTR_LEAKAGE_CALIB3_OFFSET = "leakage_calib3_offset";
+static const char * const PSTR_LEAKAGE_CALIB4_GAIN   = "leakage_calib4_gain";
+static const char * const PSTR_LEAKAGE_CALIB4_OFFSET = "leakage_calib4_offset";
 
 
-#define USB_RCV_BUFSIZE  128
+#define USB_RCV_BUFSIZE  CDC_DATA_FS_MAX_PACKET_SIZE
 #define INPUT_WORD_MAX  10
 typedef struct{
   char rcvbuf[USB_RCV_BUFSIZE];
@@ -152,6 +192,7 @@ void tsk_usb( void )
                 }
             }
         } else {
+
             if (usbcb.usbtxbufp) {
                 CDC_Transmit_FS((uint8_t*)usbcb.usbtxbuf, usbcb.usbtxbufp);
                 usbcb.usbtxbufp = 0;
@@ -177,6 +218,12 @@ static int usb_putchar( char c )
   }else{
     ret = 0;
   }
+  if( usbcb.usbtxbufp >= USB_RCV_BUFSIZE){
+    CDC_Transmit_FS((uint8_t*)usbcb.usbtxbuf, usbcb.usbtxbufp);
+	usbcb.usbtxbufp = 0; // buffer full, reset buffer
+	osDelay(2); // wait for buffer flush
+  }
+
   return ret;
 }
 
@@ -199,29 +246,6 @@ static int usb_puts( const char *str )
   if( ret == 1 )ret = usb_putchar(0x0A); // LF
   return ret;
 }
-
-/// @brief
-/// @param str
-/// @return
-static int usb_puts_k( const char *str )
-{
-  int ret = 1;
-  usb_putchar('[');
-  while(*str){
-	ret = usb_putchar(*str);
-		if(ret != 1 ){
-		break; // buffer full
-	}
-	str++;
-  }
-
-  usb_putchar(']');
-  if( ret == 1 )ret = usb_putchar(0x0D); // CR
-  if( ret == 1 )ret = usb_putchar(0x0A); // LF
-  return ret;
-}
-
-
 
 /// @brief 入力文字列を単語ごとに分割し、各単語の先頭ポインタと長さをusbcbに格納する
 /// @param command_strings 入力文字列（\0終端）
@@ -264,10 +288,7 @@ typedef enum{
   KWD_SET,
   KWD_GET,
   KWD_STATUS,
-  KWD_IP,
-  KWD_PORT,
   KWD_POWER,
-  KWD_CONNECT_TIMEOUT,
   KWD_MAX
 } E_KEYWORD;
 
@@ -288,13 +309,363 @@ const T_KEYWORD t_command[]={
 	{KWD_STATUS, "status", "Show Status"},
 	{KWD_MAX, "", ""}
 };
-const T_KEYWORD t_set_param[] =
+
+static int copy_word_to_buf( uint16_t index, char *out, size_t out_size )
 {
-	{KWD_IP,"ip", "Set IP Address"},
-	{KWD_PORT,"port", "Set Port Number"},
-	{KWD_CONNECT_TIMEOUT,"timeout", "Set Connect Timeout"},
-	{KWD_MAX, "", ""}
-};
+	uint16_t len;
+
+	if( (out == NULL) || (out_size == 0) ){
+		return 0;
+	}
+	if( index >= usbcb.word_num ){
+		return 0;
+	}
+
+	len = usbcb.word_len[index];
+	if( (len == 0) || (len >= out_size) ){
+		return 0;
+	}
+
+	memcpy(out, usbcb.word_top_ptr[index], len);
+	out[len] = '\0';
+	return 1;
+}
+
+static bool parse_u32_token( const char *token, uint32_t *out )
+{
+	uint32_t value = 0;
+
+	if( (token == NULL) || (out == NULL) || (*token == '\0') ){
+		return false;
+	}
+
+	for( ; *token != '\0'; token++ ){
+		if( !isdigit((int)(unsigned char)*token) ){
+			return false;
+		}
+		value = (value * 10U) + (uint32_t)(*token - '0');
+	}
+
+	*out = value;
+	return true;
+}
+
+static bool parse_u8_token( const char *token, uint8_t *out )
+{
+	uint32_t value;
+
+	if( !parse_u32_token(token, &value) ){
+		return false;
+	}
+	if( value > 255U ){
+		return false;
+	}
+	*out = (uint8_t)value;
+	return true;
+}
+
+static bool parse_u16_token( const char *token, uint16_t *out )
+{
+	uint32_t value;
+
+	if( !parse_u32_token(token, &value) ){
+		return false;
+	}
+	if( value > 65535U ){
+		return false;
+	}
+	*out = (uint16_t)value;
+	return true;
+}
+
+static bool parse_ipv4_token( const char *token, uint8_t ip[4] )
+{
+	uint32_t value = 0;
+	int part = 0;
+	bool has_digit = false;
+
+	if( (token == NULL) || (*token == '\0') ){
+		return false;
+	}
+
+	for( ; ; token++ ){
+		char c = *token;
+		if( isdigit((int)(unsigned char)c) ){
+			has_digit = true;
+			value = (value * 10U) + (uint32_t)(c - '0');
+			if( value > 255U ){
+				return false;
+			}
+			continue;
+		}
+
+		if( (c == '.') || (c == '\0') ){
+			if( !has_digit || (part >= 4) ){
+				return false;
+			}
+			ip[part++] = (uint8_t)value;
+			value = 0;
+			has_digit = false;
+			if( c == '\0' ){
+				break;
+			}
+			continue;
+		}
+
+		return false;
+	}
+
+	return (part == 4);
+}
+
+static bool is_valid_float_token( const char *token )
+{
+	bool has_digit = false;
+	int dot_count = 0;
+
+	if( (token == NULL) || (*token == '\0') ){
+		return false;
+	}
+
+	if( (*token == '+') || (*token == '-') ){
+		token++;
+		if( *token == '\0' ){
+			return false;
+		}
+	}
+
+	for( ; *token != '\0'; token++ ){
+		if( isdigit((int)(unsigned char)*token) ){
+			has_digit = true;
+			continue;
+		}
+		if( *token == '.' ){
+			dot_count++;
+			if( dot_count > 1 ){
+				return false;
+			}
+			continue;
+		}
+		return false;
+	}
+
+	return has_digit;
+}
+
+static bool parse_float_token( const char *token, float *out )
+{
+	char work[32];
+	size_t len;
+
+	if( (out == NULL) || !is_valid_float_token(token) ){
+		return false;
+	}
+
+	len = strlen(token);
+	if( len >= sizeof(work) ){
+		return false;
+	}
+
+	memcpy(work, token, len + 1U);
+	*out = Aatof(work);
+
+	return true;
+}
+
+static void show_setup_param_help( void )
+{
+	usb_puts("Usage: set <param> <value>");
+	usb_puts("Usage: get <param> | get all");
+	usb_puts("params:");
+	usb_puts("modbus_slave_address rs485_baudrate rs485_stop_bit rs485_parity rs485_bit_length response_delay_ms");
+	usb_puts("leakage_low_cut ac_phase_wire ct_type1 ct_type2 ct_type3 ct_type4 avarage_count");
+	usb_puts("volt_calib1_gain volt_calib1_offset volt_calib2_gain volt_calib2_offset");
+	usb_puts("leakage_calib1_gain leakage_calib1_offset ... leakage_calib4_gain leakage_calib4_offset");
+}
+
+static void print_setup_param( const char *param )
+{
+	char str[96];
+
+	if( strcmp(param, PSTR_MODBUS_SLAVE_ADDRESS) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_MODBUS_SLAVE_ADDRESS, g_setup.modbus_slave_address);
+	} else if( strcmp(param, PSTR_RS485_BAUDRATE) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_RS485_BAUDRATE, g_setup.rs485_baudrate);
+	} else if( strcmp(param, PSTR_RS485_STOP_BIT) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_RS485_STOP_BIT, g_setup.rs485_stop_bit);
+	} else if( strcmp(param, PSTR_RS485_PARITY) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_RS485_PARITY, g_setup.rs485_parity);
+	} else if( strcmp(param, PSTR_RS485_BIT_LENGTH) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_RS485_BIT_LENGTH, g_setup.rs485_bit_length);
+	} else if( strcmp(param, PSTR_RESPONSE_DELAY_MS) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_RESPONSE_DELAY_MS, g_setup.response_delay_ms);
+	} else if( strcmp(param, PSTR_LEAKAGE_LOW_CUT) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_LOW_CUT, (double)g_setup.leakage_low_cut);
+	} else if( strcmp(param, PSTR_AC_PHASE_WIRE) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_AC_PHASE_WIRE, g_setup.ac_phase_wire);
+	} else if( strcmp(param, PSTR_CT_TYPE1) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_CT_TYPE1, g_setup.ct_type[0]);
+	} else if( strcmp(param, PSTR_CT_TYPE2) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_CT_TYPE2, g_setup.ct_type[1]);
+	} else if( strcmp(param, PSTR_CT_TYPE3) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_CT_TYPE3, g_setup.ct_type[2]);
+	} else if( strcmp(param, PSTR_CT_TYPE4) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_CT_TYPE4, g_setup.ct_type[3]);
+	} else if( strcmp(param, PSTR_AVARAGE_COUNT) == 0 ){
+		snprintf(str, sizeof(str), "%s:%u", PSTR_AVARAGE_COUNT, g_setup.avarage_count);
+	} else if( strcmp(param, PSTR_VOLT_CALIB1_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB1_GAIN, (double)g_setup.volt_calib[0].gain);
+	} else if( strcmp(param, PSTR_VOLT_CALIB1_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB1_OFFSET, (double)g_setup.volt_calib[0].offset);
+	} else if( strcmp(param, PSTR_VOLT_CALIB2_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB2_GAIN, (double)g_setup.volt_calib[1].gain);
+	} else if( strcmp(param, PSTR_VOLT_CALIB2_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB2_OFFSET, (double)g_setup.volt_calib[1].offset);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB1_GAIN, (double)g_setup.leakage_calib[0].gain);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB1_OFFSET, (double)g_setup.leakage_calib[0].offset);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB2_GAIN, (double)g_setup.leakage_calib[1].gain);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB2_OFFSET, (double)g_setup.leakage_calib[1].offset);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB3_GAIN, (double)g_setup.leakage_calib[2].gain);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB3_OFFSET, (double)g_setup.leakage_calib[2].offset);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB4_GAIN, (double)g_setup.leakage_calib[3].gain);
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB4_OFFSET, (double)g_setup.leakage_calib[3].offset);
+	} else {
+		snprintf(str, sizeof(str), "Unknown parameter:%s", param);
+	}
+
+	usb_puts(str);
+}
+
+static void print_all_setup_params( void )
+{
+	print_setup_param(PSTR_MODBUS_SLAVE_ADDRESS);
+	print_setup_param(PSTR_RS485_BAUDRATE);
+	print_setup_param(PSTR_RS485_STOP_BIT);
+	print_setup_param(PSTR_RS485_PARITY);
+	print_setup_param(PSTR_RS485_BIT_LENGTH);
+	print_setup_param(PSTR_RESPONSE_DELAY_MS);
+	print_setup_param(PSTR_LEAKAGE_LOW_CUT);
+	print_setup_param(PSTR_AC_PHASE_WIRE);
+	print_setup_param(PSTR_CT_TYPE1);
+	print_setup_param(PSTR_CT_TYPE2);
+	print_setup_param(PSTR_CT_TYPE3);
+	print_setup_param(PSTR_CT_TYPE4);
+	print_setup_param(PSTR_AVARAGE_COUNT);
+	print_setup_param(PSTR_VOLT_CALIB1_GAIN);
+	print_setup_param(PSTR_VOLT_CALIB1_OFFSET);
+	print_setup_param(PSTR_VOLT_CALIB2_GAIN);
+	print_setup_param(PSTR_VOLT_CALIB2_OFFSET);
+	print_setup_param(PSTR_LEAKAGE_CALIB1_GAIN);
+	print_setup_param(PSTR_LEAKAGE_CALIB1_OFFSET);
+	print_setup_param(PSTR_LEAKAGE_CALIB2_GAIN);
+	print_setup_param(PSTR_LEAKAGE_CALIB2_OFFSET);
+	print_setup_param(PSTR_LEAKAGE_CALIB3_GAIN);
+	print_setup_param(PSTR_LEAKAGE_CALIB3_OFFSET);
+	print_setup_param(PSTR_LEAKAGE_CALIB4_GAIN);
+	print_setup_param(PSTR_LEAKAGE_CALIB4_OFFSET);
+}
+
+static int set_setup_param( const char *param, const char *value )
+{
+	char str[96];
+	uint8_t u8v;
+	uint16_t u16v;
+	uint8_t ip[4];
+	float fv;
+
+	if( strcmp(param, PSTR_MODBUS_SLAVE_ADDRESS) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.modbus_slave_address = u8v;
+	} else if( strcmp(param, PSTR_RS485_BAUDRATE) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.rs485_baudrate = u8v;
+	} else if( strcmp(param, PSTR_RS485_STOP_BIT) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.rs485_stop_bit = u8v;
+	} else if( strcmp(param, PSTR_RS485_PARITY) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.rs485_parity = u8v;
+	} else if( strcmp(param, PSTR_RS485_BIT_LENGTH) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.rs485_bit_length = u8v;
+	} else if( strcmp(param, PSTR_RESPONSE_DELAY_MS) == 0 ){
+		if( !parse_u16_token(value, &u16v) ) return 0;
+		g_setup.response_delay_ms = u16v;
+	} else if( strcmp(param, PSTR_LEAKAGE_LOW_CUT) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_low_cut = fv;
+	} else if( strcmp(param, PSTR_AC_PHASE_WIRE) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.ac_phase_wire = u8v;
+	} else if( strcmp(param, PSTR_CT_TYPE1) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.ct_type[0] = u8v;
+	} else if( strcmp(param, PSTR_CT_TYPE2) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.ct_type[1] = u8v;
+	} else if( strcmp(param, PSTR_CT_TYPE3) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.ct_type[2] = u8v;
+	} else if( strcmp(param, PSTR_CT_TYPE4) == 0 ){
+		if( !parse_u8_token(value, &u8v) ) return 0;
+		g_setup.ct_type[3] = u8v;
+	} else if( strcmp(param, PSTR_AVARAGE_COUNT) == 0 ){
+		if( !parse_u16_token(value, &u16v) ) return 0;
+		g_setup.avarage_count = u16v;
+	} else if( strcmp(param, PSTR_VOLT_CALIB1_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.volt_calib[0].gain = fv;
+	} else if( strcmp(param, PSTR_VOLT_CALIB1_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.volt_calib[0].offset = fv;
+	} else if( strcmp(param, PSTR_VOLT_CALIB2_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.volt_calib[1].gain = fv;
+	} else if( strcmp(param, PSTR_VOLT_CALIB2_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.volt_calib[1].offset = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[0].gain = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[0].offset = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[1].gain = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[1].offset = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[2].gain = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[2].offset = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_GAIN) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[3].gain = fv;
+	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_OFFSET) == 0 ){
+		if( !parse_float_token(value, &fv) ) return 0;
+		g_setup.leakage_calib[3].offset = fv;
+	} else {
+		return 0;
+	}
+
+	g_sys.setup_update = 1;
+	snprintf(str, sizeof(str), "set ok: %s", param);
+	usb_puts(str);
+	print_setup_param(param);
+	return 1;
+}
 
 
 void usb_debug_hex( char *str )
@@ -314,7 +685,7 @@ void usb_debug_hex( char *str )
 /// @param buf command string
 /// @param buf commans string length
 /// @return
-E_KEYWORD search_keyword( T_KEYWORD *ptk,char *buf , uint16_t word_len)
+E_KEYWORD search_keyword( const T_KEYWORD *ptk,char *buf , uint16_t word_len)
 {
   E_KEYWORD kwd_no = KWD_NONE;
   uint16_t cmd_len;
@@ -340,7 +711,6 @@ char command_buf[USB_RCV_BUFSIZE];
 static int analyze_command( char *buf )
 {
 	int ret = 0;
-	int bufp;
 	int word_num;
 	E_KEYWORD kwd_no = KWD_NONE;
 	word_num = parse_input_words(buf); // parse input words
@@ -363,9 +733,10 @@ static int analyze_command( char *buf )
 				ret = 1; // indicate reset command
 				break;
 			case KWD_SET:
+				cmd_set();
 				break;
 			case KWD_GET:
-				usb_puts("Get Command Received.");
+				cmd_get();
 				break;
 			case KWD_POWER:
 				break;
@@ -398,100 +769,57 @@ static int analyze_command( char *buf )
 
 static int cmd_set(  void )
 {
-	E_KEYWORD kwd_no = KWD_NONE;
-	char str[40];
-	int scanf_result;
-	int i32;
-	int ip[4] = {0, 0, 0, 0};
+	char param[40];
+	char value[40];
 
-	switch( usbcb.word_num ){
-		case 1: // set command
-			usb_puts("Set parameters");
-			usb_puts("Ex set ip xx.xx.xx.xx");
-			usb_puts("ip/port/timeout");
-		break;
-		case 2: // set command with parameter
-			kwd_no = search_keyword(t_set_param ,usbcb.word_top_ptr[1],usbcb.word_len[1]); // search command number
-			switch(kwd_no){
-				case KWD_IP:
-					snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",g_setup.tcpDesconip[0], g_setup.tcpDesconip[1], g_setup.tcpDesconip[2], g_setup.tcpDesconip[3]);
-					usb_puts(str);
-					break;
-				case KWD_PORT:
-					snprintf(str,sizeof(str), "port:%d",g_setup.tcpDesconPort);
-					usb_puts(str);
-					break;
-				case KWD_CONNECT_TIMEOUT:
-					snprintf(str,sizeof(str), "TCP disconnect timeout:%d",g_setup.tcpDescon_silent_timeout);
-					usb_puts(str);
-					break;
-
-				default:
-					strncpy(str, usbcb.word_top_ptr[1], usbcb.word_len[1]);
-					str[usbcb.word_len[1]] = '\0'; // null terminate
-					usb_puts(str);
-					return 0;
-			}
-			break;
-		case 3:
-			// set command with parameter and value
-			kwd_no = search_keyword(t_set_param ,usbcb.word_top_ptr[1],usbcb.word_len[1]); // search command number
-			switch(kwd_no){
-				case KWD_IP:
-				scanf_result =sscanf(usbcb.word_top_ptr[2], "%d.%d.%d.%d", &ip[0], &ip[1], &ip[2], &ip[3]);
-					// sscanfでIPアドレスを分解
-					if( scanf_result == 4 ){
-						if( ip[0] < 0 || ip[0] > 255 ||
-							ip[1] < 0 || ip[1] > 255 ||
-							ip[2] < 0 || ip[2] > 255 ||
-							ip[3] < 0 || ip[3] > 255 ){
-							usb_puts("Invalid IP Address Format.");
-						}else{
-							g_setup.tcpDesconip[0] = (uint8_t)ip[0];
-							g_setup.tcpDesconip[1] = (uint8_t)ip[1];
-							g_setup.tcpDesconip[2] = (uint8_t)ip[2];
-							g_setup.tcpDesconip[3] = (uint8_t)ip[3];
-							g_sys.setup_update = 1; // indicate setup update
-							snprintf(str,sizeof(str), "ip addr:%d.%d.%d.%d",g_setup.tcpDesconip[0], g_setup.tcpDesconip[1], g_setup.tcpDesconip[2], g_setup.tcpDesconip[3]);
-							usb_puts(str);
-						}
-					}else{
-						usb_puts("Invalid IP Address Format. Expected format: x.x.x.x");
-					}
-					break;
-				case KWD_PORT:
-					scanf_result = sscanf(usbcb.word_top_ptr[2], "%d ", &i32);
-					if(  (scanf_result == 1 ) && (i32 < 65535 ) && (i32 > 1) ){
-						g_setup.tcpDesconPort = (uint16_t)i32;
-						g_sys.setup_update = 1; // indicate setup update
-						snprintf(str,sizeof(str), "port:%d",g_setup.tcpDesconPort);
-						usb_puts(str);
-					}else{
-						usb_puts("Invalid Port Number Format.");
-					}
-					break;
-				case KWD_CONNECT_TIMEOUT:
-
-					scanf_result = sscanf(usbcb.word_top_ptr[2], "%d ", &i32);
-					if(  (scanf_result == 1 ) &&  (i32 >= 0) ){
-						g_setup.tcpDescon_silent_timeout = i32;
-						g_sys.setup_update = 1; // indicate setup update
-						snprintf(str,sizeof(str), "TCP disconnect timeout:%ld",g_setup.tcpDescon_silent_timeout);
-						usb_puts(str);
-					}else{
-						usb_puts("Invalid Connect Timeout Format.");
-					}
-					break;
-
-				default:
-					usb_puts("parameter: ip | port | timeout");
-					return 0;
-			}
-			break;
-		default:
-			break;
-
+	if( usbcb.word_num == 1 ){
+		show_setup_param_help();
+		return 0;
 	}
+
+	if( !copy_word_to_buf(1, param, sizeof(param)) ){
+		usb_puts("Invalid parameter token.");
+		return 0;
+	}
+
+	if( usbcb.word_num == 2 ){
+		print_setup_param(param);
+		return 0;
+	}
+
+	if( !copy_word_to_buf(2, value, sizeof(value)) ){
+		usb_puts("Invalid value token.");
+		return 0;
+	}
+
+	if( set_setup_param(param, value) == 0 ){
+		usb_puts("Set failed. Check parameter name and value format.");
+		show_setup_param_help();
+	}
+
+	return 0;
+}
+
+static int cmd_get(  void )
+{
+	char param[40];
+
+	if( usbcb.word_num == 1 ){
+		show_setup_param_help();
+		return 0;
+	}
+
+	if( !copy_word_to_buf(1, param, sizeof(param)) ){
+		usb_puts("Invalid parameter token.");
+		return 0;
+	}
+
+	if( strcmp(param, "all") == 0 ){
+		print_all_setup_params();
+		return 0;
+	}
+
+	print_setup_param(param);
 	return 0;
 }
 

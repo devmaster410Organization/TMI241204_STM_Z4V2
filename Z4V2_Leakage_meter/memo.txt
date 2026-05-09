@@ -1,0 +1,15 @@
+# memo
+
+- TODO:
+- 備忘録:
+- メモ:
+
+
+マイコン
+
+現行のマイコン
+STM32G431CBT  Flash128K/RAM32K
+次期マイコンは以下の型番とする
+STM32G473CCT3 　Flash256K/RAM128K
+
+

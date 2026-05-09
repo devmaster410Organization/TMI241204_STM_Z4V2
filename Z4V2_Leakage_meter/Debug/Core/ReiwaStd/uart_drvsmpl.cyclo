@@ -2,11 +2,11 @@
 ../Core/ReiwaStd/uart_drvsmpl.c:31:6:UART_create	1
 ../Core/ReiwaStd/uart_drvsmpl.c:49:6:UART_set_485	1
 ../Core/ReiwaStd/uart_drvsmpl.c:55:9:UART_clr_error	9
-../Core/ReiwaStd/uart_drvsmpl.c:96:6:UART_rcv_clr	3
 ../Core/ReiwaStd/uart_drvsmpl.c:110:9:UART_rcv	2
+../Core/ReiwaStd/uart_drvsmpl.c:96:6:UART_rcv_clr	3
+../Core/ReiwaStd/uart_drvsmpl.c:185:9:UART_isSending	1
 ../Core/ReiwaStd/uart_drvsmpl.c:137:9:UART_puts	4
 ../Core/ReiwaStd/uart_drvsmpl.c:166:9:UART_nputs	4
-../Core/ReiwaStd/uart_drvsmpl.c:185:9:UART_isSending	1
 ../Core/ReiwaStd/uart_drvsmpl.c:198:6:HAL_UART_TxCpltCallback	4
 ../Core/ReiwaStd/uart_drvsmpl.c:216:6:HAL_UART_RxCpltCallback	3
 ../Core/ReiwaStd/uart_drvsmpl.c:229:6:HAL_UART_RxHalfCpltCallback	3

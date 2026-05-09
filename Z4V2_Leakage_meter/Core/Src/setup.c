@@ -28,11 +28,11 @@ const setup_t setup_default = {
 	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
 	.ct_type = {PRM_LEAKAGE_CT_OT1L,PRM_LEAKAGE_CT_SINKO,PRM_LEAKAGE_CT_SINKO,PRM_LEAKAGE_CT_SINKO},
 	.avarage_count = PRM_AVG_0,
-
+/*
 	.tcpDesconip = {192,168,1,100},
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
-
+*/
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0
@@ -49,11 +49,11 @@ const setup_t setup_max = {
 	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
 	.ct_type = {PRM_LEAKAGE_CT_SINKO,PRM_LEAKAGE_CT_SINKO,PRM_LEAKAGE_CT_SINKO,PRM_LEAKAGE_CT_SINKO},
 	.avarage_count = PRM_AVG_1024,
-
+/*
 	.tcpDesconip = {192,168,1,100},
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
-
+*/
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0
@@ -70,11 +70,11 @@ const setup_t setup_min = {
 	.ac_phase_wire = PRM_PHASE_WIRE_3P4W,
 	.ct_type = {PRM_LEAKAGE_CT_OT1L,PRM_LEAKAGE_CT_OT1L,PRM_LEAKAGE_CT_OT1L,PRM_LEAKAGE_CT_OT1L},
 	.avarage_count = PRM_AVG_0,
-
+/*		
 	.tcpDesconip = {192,168,1,100},
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
-
+*/
 	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0

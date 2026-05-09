@@ -1,4 +1,4 @@
 ../Core/Src/modbus_reg.c:48:6:setup_update	1
 ../Core/Src/modbus_reg.c:59:5:check_parameter	3
-../Core/Src/modbus_reg.c:72:5:MODBUS_set_reg	96
-../Core/Src/modbus_reg.c:430:5:MODBUS_get_reg	119
+../Core/Src/modbus_reg.c:72:5:MODBUS_set_reg	86
+../Core/Src/modbus_reg.c:430:5:MODBUS_get_reg	118
