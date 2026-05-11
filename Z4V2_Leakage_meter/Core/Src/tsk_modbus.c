@@ -213,14 +213,16 @@ static void MX_USART3_UART_Init_MODBUS(void)
 void MODBUS_init(void) {
 	tModBus.mode = XPMODE_WAIT;
 	tModBus.rcvbufp = 0;
-
+	if( SETUP_read(&g_setup) == 0 ){
+		g_setup = setup_default;
+	}
 
 	memset(MDBS_set_reg_com,0,sizeof(MDBS_set_reg_com));
 	memset(MDBS_set_reg_rcv,0,sizeof(MDBS_set_reg_rcv));
 	memset(MDBS_set_reg_rsv,0,sizeof(MDBS_set_reg_rsv));
 
 	tModBus.silent_limmit = 10;
-	g_setup.modbus_slave_address = 10;
+//	g_setup.modbus_slave_address = 10;
 }
 
 
@@ -237,7 +239,7 @@ int MODBUSrtu_slave_job(void)
 	for (;;) {
  
 		if (UART_rcv(&tUartRs485, &c) == UART_OK) {
-PORT_TGL(TP8);
+
 			interval = 0;
 
 			switch (tModBus.mode) {

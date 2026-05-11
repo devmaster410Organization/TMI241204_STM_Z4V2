@@ -108,7 +108,7 @@ void cnv_2ct3cur( float *ct, float *cur )
 	float s,t,r;
 	r = *ct++;
 	t = *ct++;
-	s = 0 - r - t;
+	s = 0 - r + t;
 	cur[0] = r;
 	cur[1] = s;
 	cur[2] = t;
@@ -152,6 +152,7 @@ void adj_centor(int16_t *adcv)
 int culc_vol( float *cur )
 {
 	int flg = 0;
+	float vdda_scale = 1.0f;
 	tAc.adc_total_seccnt++;
 	for(int i = 0;i<3;i++){
 		tAc.adc_total[i] += fabsf(cur[i]);
@@ -159,8 +160,12 @@ int culc_vol( float *cur )
 	if( tAc.adc_total_seccnt >= V_ADC_HZ ){
 		flg = 1;
 		tAc.adc_total_seccnt = 0;
+		vdda_scale = Calc_GetAdcVddaScale();
 		for(int i = 0;i<3;i++){
-			tAc.vol[i] = CnvVolAbs( tAc.adc_total[i], 0.1f	);	//0.1secで平均値をとる
+			float f;
+			f =  CnvVolAbs( tAc.adc_total[i], 0.1f	) * vdda_scale;	//0.1secで平均値をとる
+			f = g_setup.volt_calib[i].gain * f  + g_setup.volt_calib[i].offset;
+			tAc.vol[i] = f;
 			tAc.adc_total[i] = 0;
 			if(tAc.vol[i] > tAc.vol_max[i]){
 				tAc.vol_max[i] = tAc.vol[i];

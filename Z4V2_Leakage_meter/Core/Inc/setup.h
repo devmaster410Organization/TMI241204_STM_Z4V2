@@ -33,13 +33,12 @@ typedef struct{
 	uint16_t tcpDescon_silent_timeout; // TCP切断のタイムアウト時間	
 */
 	//一次補正 y = ax + b の a,b
-	calib_param_t volt_calib[2];
+	calib_param_t volt_calib[3];
     calib_param_t leakage_calib[4];
 	uint16_t check_sum;
 }setup_t;
-extern setup_t setup;
-#define g_setup setup
-extern const setup_t default_setup;
+extern setup_t g_setup;
+extern const setup_t setup_default;
 extern const setup_t setup_max;
 extern const setup_t setup_min;
 

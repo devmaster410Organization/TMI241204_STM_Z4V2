@@ -82,6 +82,7 @@ void tsk_usb( void );
 void tsk_modbus_slave( void );
 void GetADCRawValues( uint16_t *adc1_values,int num);
 void GetVZValues( float *adc1_values,int num);
+float Calc_GetAdcVddaScale( void );
 
 typedef enum{
     MODE_MEASURE = 0,
@@ -183,7 +184,7 @@ void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state );
 uint32_t Get_cycle_time( uint16_t no );
 uint16_t GetVCycle( void );
 float GetVFreq( void );
-
+float Calc_GetAdcVddaScale( void );
 
 
 #include "util.h"

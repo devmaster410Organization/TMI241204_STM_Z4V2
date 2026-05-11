@@ -25,6 +25,7 @@ float Calculate_Temperature(uint32_t ts_adc_raw, float vdda) ;
 void Process_ADC_Values( void );
 void put_adc_all_queue( void );
 
+float Calc_GetAdcVddaScale( void );
 
 
 /// @brief Calculate task
@@ -47,6 +48,18 @@ void tsk_calc( void )
   sampling_t.hal_status_adc[2] = HAL_OK;
   sampling_t.hal_status_adc[3] = HAL_OK;
   sampling_t.osMessagePutStat = osOK;
+  sampling_t.osMessagePutCount = 0;
+  sampling_t.osMessagePutErrorCount = 0;
+  sampling_t.osMessageGetCount = 0;
+  sampling_t.osMessageGetTimeoutCount = 0;
+  sampling_t.adc1_callback_count = 0;
+  sampling_t.adc1_callback_count_last = 0;
+  sampling_t.sdadc1_callback_count = 0;
+  sampling_t.adc2_callback_count = 0;
+  sampling_t.error_sample_buf_overrun_count = 0;
+  sampling_t.current_temp = 25.0f;//初期値
+  sampling_t.current_vbat = 3.3f; //初期値
+  sampling_t.current_vdda = 3.0f; //初期値
 
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
 	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
@@ -113,18 +126,22 @@ void tsk_calc( void )
 */
         rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
+					f = g_setup.leakage_calib[0].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[0].offset;
 					sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
 				}
 				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
 				if(rslt == 1){
-					sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
+          f = g_setup.leakage_calib[1].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[1].offset;
+					sampling_t.out_ma[QSEL_IN4_CHANNEL] = f; 
 				}
 				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], &pbuf->buf[QSEL_IN12_CHANNEL], 1,&f);
 				if(rslt == 1){
+          f = g_setup.leakage_calib[2].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[2].offset;
 					sampling_t.out_ma[QSEL_IN12_CHANNEL] = f;
 				}
 				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
 				if(rslt == 1){
+          f = g_setup.leakage_calib[3].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[3].offset;
 					sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
 				}
 				pbuf->en = 0;
@@ -330,7 +347,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         sampling_t.v0_cycle_time = (uint16_t)rslt;
         sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
       }
-
+PORT_TGL(TP8);
     }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1
       pin_state = PORT_READ( LPH1 );
     	ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
@@ -615,4 +632,15 @@ float GetVFreq( void )
     return 0.0f;
   }
   return 1000000.0f / (float)sampling_t.v0_cycle_time;
+}
+
+
+/// @brief ADCの基準電圧に応じた補正係数を返す
+/// @return 現在のVDDA / 3.0V
+float Calc_GetAdcVddaScale( void )
+{
+  if( sampling_t.current_vdda <= 0.0f ){
+    return 1.0f;
+  }
+  return sampling_t.current_vdda / 3.0f;
 }

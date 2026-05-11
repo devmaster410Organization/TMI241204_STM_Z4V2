@@ -33,7 +33,7 @@ const setup_t setup_default = {
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
 */
-	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
+	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0
 };	
@@ -54,7 +54,7 @@ const setup_t setup_max = {
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
 */
-	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
+	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0
 };	
@@ -75,7 +75,7 @@ const setup_t setup_min = {
 	.tcpDesconPort = 502,
 	.tcpDescon_silent_timeout = 30000,
 */
-	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f}},
+	.volt_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.leakage_calib = {{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f},{1.0f,0.0f}},
 	.check_sum = 0
 };	
