@@ -163,7 +163,7 @@ UI_Disp_enum ui_show_value( void )
   while( done == false ){
     GetVValues(fval,3);
     sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
-    ChlcdPrint( 0, 0, lcd_str );
+    ChlcdPrint( 0, 0, lcd_str );s
     sprintf( (char*)lcd_str, "V1 %5.1fV ", fval[1] );
     ChlcdPrint( 0, 1, lcd_str );
     sprintf( (char*)lcd_str, "V2 %5.1fV", fval[2] );
@@ -174,7 +174,7 @@ UI_Disp_enum ui_show_value( void )
     ChlcdPrint( 0, 3, lcd_str );
 
 
-    sprintf( (char*)lcd_str, "z0 %7.3f", fval[2] );
+    sprintf( (char*)lcd_str, "Z0 %7.3f", fval[2] );
     ChlcdPrint( 10, 0, lcd_str );
     sprintf( (char*)lcd_str, "Z1 %7.3f", fval[3] );
     ChlcdPrint( 10, 1, lcd_str );

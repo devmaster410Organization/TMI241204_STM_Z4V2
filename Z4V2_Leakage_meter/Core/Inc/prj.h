@@ -59,20 +59,9 @@ extern TIM_HandleTypeDef htim15;
 
 extern UART_HandleTypeDef huart3;
 
-
-
-
-
-
-
-
 #include "calc_leak.h"
 #include "calc_volt.h"
-
-
-
-
-
+#include "calc_stat.h"
 
 ///
 
@@ -97,6 +86,10 @@ typedef struct{
 //-- mode
     sys_mode_t mode;  //
     sys_mode_t mode_next; // モード遷移先。mode_next != mode のとき、modeをmode_nextに切り替える
+
+
+    uint16_t volt_cancel_counter;
+    uint16_t leakage_cancel_counter[4]
 }sys_t;
 extern sys_t g_sys;
 
@@ -127,7 +120,7 @@ extern osMessageQId queue_ADCHandle;
 #define QSEL_VBAT_CHANNEL   0x0008
 
 
-#define FS_HZ          3600 // Sampling frequency is 1800hz
+#define FS_HZ          (3600) // Sampling frequency is 1800hz
 #define FRAME_SAMPLES  1   // 
 
 #define ADC1_CH_NUM 3 // temp, vbat, vref
@@ -169,11 +162,11 @@ typedef struct {
 
   st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
   uint8_t st_sample_buf_index;
-  Leak1Hz_5060 leak1hz_t[ADC2_CH_NUM];
+  Leak100ms_5060 leak100ms_t[ADC2_CH_NUM];
   float out_ma[ADC2_CH_NUM];
   float out_ma_max[ADC2_CH_NUM];
   float out_ma_min[ADC2_CH_NUM];
-
+  float k_ma[ADC2_CH_NUM];
   uint16_t v0_cycle_time;
   float V0Hz;
 } st_sampling_cb;
@@ -190,4 +183,5 @@ float Calc_GetAdcVddaScale( void );
 #include "util.h"
 #include "tsk_modbus.h"
 #include "modbus_reg.h"
+
 #endif /* INC_PRJ_H_ */

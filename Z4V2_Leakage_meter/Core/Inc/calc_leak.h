@@ -24,8 +24,8 @@
 typedef struct
 {
   /* ---- Config ---- */
-  uint32_t fs_hz;          // sampling rate (e.g. 1800)
-  uint32_t nwin;           // samples per 1-second window (=fs_hz)
+  uint32_t fs_hz;          // sampling rate (e.g. 3600)
+  uint32_t nwin;           // samples per 0.1-second window (=fs_hz/10)
   float    alpha;          // EWMA alpha (e.g. 0.30f)
   float    deadband_mA;    // e.g. 0.10f
   float    K_mA;           // mA per sqrt(power)
@@ -57,19 +57,19 @@ typedef struct
 
   float filt_mA;           // EWMA state
   float last_mA;           // latest output
-} Leak1Hz_5060;
+} Leak100ms_5060;
 
-void Leak1Hz_5060_Init(Leak1Hz_5060 *st,
+void Leak100ms_5060_Init(Leak100ms_5060 *st,
                        uint32_t fs_hz,
                        float K_mA,
                        float alpha,
                        float deadband_mA,
                        float hpf_a,
                        float fsel_ratio /* e.g. 1.30f */);
-void Leak1Hz_5060_SetOffset_mA(Leak1Hz_5060 *st, float offset_mA);
-int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t n, float *out_mA);
-float Leak1Hz_5060_GetLast_mA(const Leak1Hz_5060 *st);
-int Leak1Hz_5060_Is60Hz(const Leak1Hz_5060 *st);
+void Leak100ms_5060_SetOffset_mA(Leak100ms_5060 *st, float offset_mA);
+int Leak100ms_5060_PushSamples(Leak100ms_5060 *st, const int16_t *samples, uint32_t n, float *out_mA);
+float Leak100ms_5060_GetLast_mA(const Leak100ms_5060 *st);
+int Leak100ms_5060_Is60Hz(const Leak100ms_5060 *st);
 
 void Calc_ResetMinLeakValue(void);
 void Calc_ResetMaxLeakValue(void);

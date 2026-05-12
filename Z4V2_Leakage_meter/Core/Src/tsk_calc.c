@@ -27,10 +27,25 @@ void put_adc_all_queue( void );
 
 float Calc_GetAdcVddaScale( void );
 
+#define K_OTG_LA21 4.059207897e-4
+#define K_MZ1H 2.690710247E-4
+
+
+float set_K( uint16_t ct_type )
+{
+  switch( ct_type ){
+    case PRM_LEAKAGE_CT_MZ1H: //30mA
+      return K_MZ1H;
+    case PRM_LEAKAGE_CT_OTG_LA21: // 高精度漏電CT1
+    default:
+    return K_OTG_LA21 ;
+  }
+}
 
 /// @brief Calculate task
 /// @param  
 volatile uint8_t idxx;
+#define ALPHA 0.05f
 void tsk_calc( void )
 {
 	uint8_t idx;
@@ -60,20 +75,15 @@ void tsk_calc( void )
   sampling_t.current_temp = 25.0f;//初期値
   sampling_t.current_vbat = 3.3f; //初期値
   sampling_t.current_vdda = 3.0f; //初期値
+  sampling_t.k_ma[0] = set_K( g_setup.ct_type[0]);
+  sampling_t.k_ma[1] = set_K( g_setup.ct_type[1]);
+  sampling_t.k_ma[2] = set_K( g_setup.ct_type[2]);
+  sampling_t.k_ma[3] = set_K( g_setup.ct_type[3]);
 
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], FS_HZ, 0.00009639222287, 0.30f, 0.10f, 0.995f, 1.30f );
-
-#if 0  
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,1.263953774e-3,0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,1.263953774e-3, 0.30f, 0.10f, 0.995f );
-	Leak1Hz_Init( &sampling_t.leak1hz_t[QSEL_IN17_CHANNEL], FS_HZ,1.263953774e-3 ,0.30f, 0.10f, 0.995f );
-#endif
-  Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], FS_HZ,4.059207897e-4 ,0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], FS_HZ,3.031481135e-4 ,0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], FS_HZ,2.690710247E-4, 0.30f, 0.10f, 0.995f, 1.30f );
-	Leak1Hz_5060_Init( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], FS_HZ,2.690710247E-4,0.30f, 0.10f, 0.995f, 1.30f );
+  Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], FS_HZ,sampling_t.k_ma[0] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN4_CHANNEL], FS_HZ,sampling_t.k_ma[1] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], FS_HZ,sampling_t.k_ma[2] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], FS_HZ,sampling_t.k_ma[3] ,ALPHA, 0.10f, 0.995f, 1.30f );
 	
 	for(;;){
     if( g_sys.mode_next != g_sys.mode ){
@@ -101,7 +111,6 @@ void tsk_calc( void )
 		uint8_t msg;
 		osStatus_t status = osMessageQueueGet(queue_ADCHandle,&msg,&msg_prio,1000); 
 //		PORT_HI(TP8);
-
 		switch( status ){
 		case osOK:
 			idx = msg;
@@ -112,38 +121,44 @@ void tsk_calc( void )
 				float f;
 
         int16_t adcv[2] = { pbuf->buf[QSEL_IN1_CHANNEL], pbuf->buf[QSEL_IN2_CHANNEL] };
-        Culc_vol( adcv );
+        float vol[3];
+        rslt = Culc_vol( adcv ,vol);
+        push_voltage_stat( vol );
         
-/*
-        rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN1_CHANNEL], &pbuf->buf[QSEL_IN1_CHANNEL], 1,&f);
+        rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
-  				sampling_t.out_ma[QSEL_IN1_CHANNEL] = f;
-				}
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN2_CHANNEL], &pbuf->buf[QSEL_IN2_CHANNEL], 1,&f);
+          push_leakage_stat( 0, f );
+        }
+				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
 				if(rslt == 1){
-					sampling_t.out_ma[QSEL_IN2_CHANNEL] = f;
-				}
-*/
-        rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+          if( g_sys.leakage_cancel_counter[1] > 0 ){
+            g_sys.leakage_cancel_counter[1]--;
+            f = 0.0f;
+          }else{
+  					f = g_setup.leakage_calib[1].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[1].offset;
+					  sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
+          }
+        }
+				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], &pbuf->buf[QSEL_IN12_CHANNEL], 1,&f);
 				if(rslt == 1){
-					f = g_setup.leakage_calib[0].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[0].offset;
-					sampling_t.out_ma[QSEL_IN3_CHANNEL] = f;
-				}
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
+          if( g_sys.leakage_cancel_counter[2] > 0 ){
+            g_sys.leakage_cancel_counter[2]--;
+            f = 0.0f;
+          }else{
+  					f = g_setup.leakage_calib[2].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[2].offset;
+					  sampling_t.out_ma[QSEL_IN12_CHANNEL] = f;
+          }
+        }
+				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
 				if(rslt == 1){
-          f = g_setup.leakage_calib[1].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[1].offset;
-					sampling_t.out_ma[QSEL_IN4_CHANNEL] = f; 
-				}
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN12_CHANNEL], &pbuf->buf[QSEL_IN12_CHANNEL], 1,&f);
-				if(rslt == 1){
-          f = g_setup.leakage_calib[2].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[2].offset;
-					sampling_t.out_ma[QSEL_IN12_CHANNEL] = f;
-				}
-				rslt = Leak1Hz_5060_PushSamples( &sampling_t.leak1hz_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
-				if(rslt == 1){
-          f = g_setup.leakage_calib[3].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[3].offset;
-					sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
-				}
+          if( g_sys.leakage_cancel_counter[3] > 0 ){
+            g_sys.leakage_cancel_counter[3]--;
+            f = 0.0f;
+          }else{
+  					f = g_setup.leakage_calib[3].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[3].offset;
+				  	sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
+          }
+        }
 				pbuf->en = 0;
 			}else{
 				//
@@ -166,7 +181,11 @@ static void init_sample_buf( void )
 {
   memset( &sampling_t.sample_buf_t, 0, sizeof(sampling_t.sample_buf_t) );
   sampling_t.st_sample_buf_index = 0;
-  
+  for(int i=0; i<SAMPLE_INDEX_MAX; i++){
+   	g_sys.leakage_cancel_counter[i] = 60;	// 最初の6秒は出力しない
+  }
+  g_sys.volt_cancel_counter = 60;	// 最初の6秒は出力しない
+
 }
 
 

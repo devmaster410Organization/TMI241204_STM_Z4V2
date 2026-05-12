@@ -16,6 +16,7 @@ void GetVValues( float *v,int num );
 void Calc_ResetMinVoltValue(void);
 void Calc_ResetMaxVoltValue(void);
 
+int culc_vol( float *cur , float *volt);
 void GetVMaxValues( float *v,int num );
 void GetVMinValues( float *v,int num );
 

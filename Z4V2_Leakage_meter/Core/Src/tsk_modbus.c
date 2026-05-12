@@ -41,7 +41,11 @@ static void sub_error_code(uint8_t errcode);
 
 void tsk_modbus_slave( void )
 {
+	
 	uart_init();
+	if( SETUP_read(&g_setup) == 0 ){
+		g_setup = setup_default;
+	}
 	MX_USART3_UART_Init_MODBUS();
 	osDelay(1500);
 
@@ -213,9 +217,6 @@ static void MX_USART3_UART_Init_MODBUS(void)
 void MODBUS_init(void) {
 	tModBus.mode = XPMODE_WAIT;
 	tModBus.rcvbufp = 0;
-	if( SETUP_read(&g_setup) == 0 ){
-		g_setup = setup_default;
-	}
 
 	memset(MDBS_set_reg_com,0,sizeof(MDBS_set_reg_com));
 	memset(MDBS_set_reg_rcv,0,sizeof(MDBS_set_reg_rcv));

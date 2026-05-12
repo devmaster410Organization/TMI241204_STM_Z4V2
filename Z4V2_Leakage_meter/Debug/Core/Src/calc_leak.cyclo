@@ -1,5 +1,5 @@
-../Core/Src/calc_leak.c:56:6:Leak1Hz_5060_Init	1
-../Core/Src/calc_leak.c:92:6:Leak1Hz_5060_SetOffset_mA	1
-../Core/Src/calc_leak.c:102:5:Leak1Hz_5060_PushSamples	12
-../Core/Src/calc_leak.c:163:7:Leak1Hz_5060_GetLast_mA	1
-../Core/Src/calc_leak.c:168:5:Leak1Hz_5060_Is60Hz	1
+../Core/Src/calc_leak.c:56:6:Leak100ms_5060_Init	1
+../Core/Src/calc_leak.c:92:6:Leak100ms_5060_SetOffset_mA	1
+../Core/Src/calc_leak.c:102:5:Leak100ms_5060_PushSamples	12
+../Core/Src/calc_leak.c:164:7:Leak100ms_5060_GetLast_mA	1
+../Core/Src/calc_leak.c:169:5:Leak100ms_5060_Is60Hz	1

@@ -18,10 +18,10 @@
 
 
 /* -------- internal helpers -------- */
-static inline void reset_goertzel_50(Leak1Hz_5060 *st){ st->s1_50 = 0.0f; st->s2_50 = 0.0f; }
-static inline void reset_goertzel_60(Leak1Hz_5060 *st){ st->s1_60 = 0.0f; st->s2_60 = 0.0f; }
+static inline void reset_goertzel_50(Leak100ms_5060 *st){ st->s1_50 = 0.0f; st->s2_50 = 0.0f; }
+static inline void reset_goertzel_60(Leak100ms_5060 *st){ st->s1_60 = 0.0f; st->s2_60 = 0.0f; }
 
-static inline float hpf_update(Leak1Hz_5060 *st, float x)
+static inline float hpf_update(Leak100ms_5060 *st, float x)
 {
   float y = (x - st->x_prev) + st->hpf_a * st->y_prev;
   st->x_prev = x;
@@ -29,31 +29,31 @@ static inline float hpf_update(Leak1Hz_5060 *st, float x)
   return y;
 }
 
-static inline void goertzel_update_50(Leak1Hz_5060 *st, float x)
+static inline void goertzel_update_50(Leak100ms_5060 *st, float x)
 {
   float s0 = x + st->coeff50 * st->s1_50 - st->s2_50;
   st->s2_50 = st->s1_50;
   st->s1_50 = s0;
 }
-static inline void goertzel_update_60(Leak1Hz_5060 *st, float x)
+static inline void goertzel_update_60(Leak100ms_5060 *st, float x)
 {
   float s0 = x + st->coeff60 * st->s1_60 - st->s2_60;
   st->s2_60 = st->s1_60;
   st->s1_60 = s0;
 }
 
-static inline float goertzel_power_50(const Leak1Hz_5060 *st)
+static inline float goertzel_power_50(const Leak100ms_5060 *st)
 {
   return st->s1_50*st->s1_50 + st->s2_50*st->s2_50 - st->coeff50*st->s1_50*st->s2_50;
 }
-static inline float goertzel_power_60(const Leak1Hz_5060 *st)
+static inline float goertzel_power_60(const Leak100ms_5060 *st)
 {
   return st->s1_60*st->s1_60 + st->s2_60*st->s2_60 - st->coeff60*st->s1_60*st->s2_60;
 }
 
 /* -------- public API -------- */
 
-void Leak1Hz_5060_Init(Leak1Hz_5060 *st,
+void Leak100ms_5060_Init(Leak100ms_5060 *st,
                        uint32_t fs_hz,
                        float K_mA,
                        float alpha,
@@ -62,14 +62,14 @@ void Leak1Hz_5060_Init(Leak1Hz_5060 *st,
                        float fsel_ratio /* e.g. 1.30f */)
 {
   st->fs_hz = fs_hz;
-  st->nwin  = fs_hz;      // 1 second
+  st->nwin  = fs_hz / 10;      // 0.1 second
   st->K_mA  = K_mA;
   st->alpha = alpha;
   st->deadband_mA = deadband_mA;
 
   st->hpf_a = hpf_a;
-  st->x_prev = 0.0f;
-  st->y_prev = 0.0f;
+  st->x_prev = 4096/2; //ADCの中点を指す
+  st->y_prev = 4096/2; //ADCの中点を指す
 
   st->coeff50 = 2.0f * cosf(2.0f * (float)M_PI * 50.0f / (float)fs_hz);
   st->coeff60 = 2.0f * cosf(2.0f * (float)M_PI * 60.0f / (float)fs_hz);
@@ -89,17 +89,17 @@ void Leak1Hz_5060_Init(Leak1Hz_5060 *st,
   st->last_mA = 0.0f;
 }
 
-void Leak1Hz_5060_SetOffset_mA(Leak1Hz_5060 *st, float offset_mA)
+void Leak100ms_5060_SetOffset_mA(Leak100ms_5060 *st, float offset_mA)
 {
   st->offset_mA = offset_mA;
   st->offset_valid = 1;
 }
 
 /**
- * Push ADC samples. Return 1 once per second, with out_mA updated.
+ * Push ADC samples. Return 1 once per 0.1 second, with out_mA updated.
  * Otherwise return 0.
  */
-int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t n, float *out_mA)
+int Leak100ms_5060_PushSamples(Leak100ms_5060 *st, const int16_t *samples, uint32_t n, float *out_mA)
 {
   for (uint32_t i = 0; i < n; i++)
   {
@@ -133,7 +133,8 @@ int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t 
       float power = (st->use60 ? p60 : p50);
 
       /* Convert power -> mA (your existing scaling) */
-      float leak_raw_mA = st->K_mA * sqrtf(power);
+      /* 10x correction for 0.1sec window (vs original 1sec) */
+      float leak_raw_mA = st->K_mA * sqrtf(power) * 10.0f;
 
       /* Offset correction */
       float x_mA = leak_raw_mA;
@@ -149,7 +150,7 @@ int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t 
       st->last_mA = st->filt_mA;
       if (out_mA) *out_mA = st->last_mA;
 
-      /* Next second */
+      /* Next 0.1 second */
       reset_goertzel_50(st);
       reset_goertzel_60(st);
       st->sample_count = 0;
@@ -160,12 +161,12 @@ int Leak1Hz_5060_PushSamples(Leak1Hz_5060 *st, const int16_t *samples, uint32_t 
   return 0;
 }
 
-float Leak1Hz_5060_GetLast_mA(const Leak1Hz_5060 *st)
+float Leak100ms_5060_GetLast_mA(const Leak100ms_5060 *st)
 {
   return st->last_mA;
 }
 
-int Leak1Hz_5060_Is60Hz(const Leak1Hz_5060 *st)
+int Leak100ms_5060_Is60Hz(const Leak100ms_5060 *st)
 {
   return st->use60;
 }

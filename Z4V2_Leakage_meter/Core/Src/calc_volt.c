@@ -19,9 +19,11 @@ typedef struct{
 
 	uint16_t adc_total_seccnt;
 	float adc_total[3];
+/*
 	float vol[3];
 	float vol_max[3];
 	float vol_min[3];
+*/
 	uint8_t cur_max_send_flg;	// 0: not send, 1: send
 	uint8_t adc_center_first_flg;
 
@@ -96,6 +98,8 @@ void Culc_vol_init(void)
 	tAc.vol_min[0] = KE1_MIN_VOL;
 	tAc.vol_min[1] = KE1_MIN_VOL;
 	tAc.vol_min[2] = KE1_MIN_VOL;
+
+
 }
 
 
@@ -149,7 +153,7 @@ void adj_centor(int16_t *adcv)
 /// @brief 
 /// @param cur 
 /// @return 
-int culc_vol( float *cur )
+int culc_vol( float *cur , float *volt)
 {
 	int flg = 0;
 	float vdda_scale = 1.0f;
@@ -158,21 +162,31 @@ int culc_vol( float *cur )
 		tAc.adc_total[i] += fabsf(cur[i]);
 	}
 	if( tAc.adc_total_seccnt >= V_ADC_HZ ){
-		flg = 1;
 		tAc.adc_total_seccnt = 0;
+		flg = 1;
+
+
 		vdda_scale = Calc_GetAdcVddaScale();
 		for(int i = 0;i<3;i++){
 			float f;
+			if( (g_setup.ac_phase_wire == PRM_PHASE_WIRE_1P2W) && (i != 0 ) ){ // 単相2線のとき、2相目は存在しないので0にする
+				tAc.vol[i] = 0.0f;
+				continue;
+			} 
 			f =  CnvVolAbs( tAc.adc_total[i], 0.1f	) * vdda_scale;	//0.1secで平均値をとる
 			f = g_setup.volt_calib[i].gain * f  + g_setup.volt_calib[i].offset;
-			tAc.vol[i] = f;
-			tAc.adc_total[i] = 0;
-			if(tAc.vol[i] > tAc.vol_max[i]){
-				tAc.vol_max[i] = tAc.vol[i];
+			*volt++  = f;
+/*
+				tAc.vol[i] = f;
+				tAc.adc_total[i] = 0;
+				if(tAc.vol[i] > tAc.vol_max[i]){
+					tAc.vol_max[i] = tAc.vol[i];
+				}
+				if(tAc.vol[i] < tAc.vol_min[i]){
+					tAc.vol_min[i] = tAc.vol[i];
+				}
 			}
-			if(tAc.vol[i] < tAc.vol_min[i]){
-				tAc.vol_min[i] = tAc.vol[i];
-			}
+*/
 		}
 	}
 	
