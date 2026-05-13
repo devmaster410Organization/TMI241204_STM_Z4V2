@@ -112,13 +112,13 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
           break;
         case CMD_DATA_RESET_MAX:
         // 各計測値最大値リセット
-          Calc_ResetMaxVoltValue();
-          Calc_ResetMaxLeakValue();
+          ResetMaxVoltValue();
+          ResetMaxLeakValue();
           break;
         case CMD_DATA_RESET_MIN:
         // 各計測値最小値リセット     
-          Calc_ResetMinVoltValue();
-          Calc_ResetMinLeakValue();
+          ResetMinVoltValue();
+          ResetMinLeakValue();
           break;
         case CMD_DATA_SOFT_RESET:
           NVIC_SystemReset(); // ソフトリセット (無応答になります)
@@ -436,7 +436,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
 
 	switch( add ){
     case REG_INST_VOLTAGE_1:
-      GetVValues(fval,3);
+      GetVInstValue(fval,3);
       modbusbuf.reg_inst_voltage[0] = (uint32_t)(fval[0]*10.0);
       *val = modbusbuf.reg_inst_voltage[0]>>16; // 上位16ビットを返す
       break;
@@ -445,7 +445,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_VOLTAGE_2:
-      GetVValues(fval,3);
+      GetVInstValue(fval,3);
       modbusbuf.reg_inst_voltage[1] = (uint32_t)(fval[1]*10.0); 
       *val = modbusbuf.reg_inst_voltage[1]>>16; // 上位16ビットを返す
       break;
@@ -453,7 +453,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       *val = modbusbuf.reg_inst_voltage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_INST_VOLTAGE_3:
-      GetVValues(fval,3);
+      GetVInstValue(fval,3);
       modbusbuf.reg_inst_voltage[2] = (uint32_t)(fval[2]*10.0);
       *val = modbusbuf.reg_inst_voltage[2]>>16; // 上位16ビットを返す
       break;
@@ -478,6 +478,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_LEAKAGE_1:
+    modbusbuf.reg_inst_leakage[0] = GetLInstValue(0); //小数点以下切り捨て
       *val = modbusbuf.reg_inst_leakage[0]>>16; // 上位16ビットを返す
       break;
     case REG_INST_LEAKAGE_1+1:
@@ -485,8 +486,8 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_LEAKAGE_2:
-      modbusbuf.reg_inst_leakage[1] = sampling_t.out_ma[1]*10.0;
-      *val = modbusbuf.reg_inst_leakage[1]>>16; // 上位16ビットを返す
+      modbusbuf.reg_inst_leakage[1] = GetLInstValue(1); //小数点以下切り捨て
+      *val = modbusbuf.reg_inst_leakage[1]>>16; // 上位16ビットを返す 
       break;
     
     case REG_INST_LEAKAGE_2+1:
@@ -494,6 +495,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_LEAKAGE_3:
+      modbusbuf.reg_inst_leakage[2] = GetLInstValue(2); //小数点以下切り捨て
       *val = modbusbuf.reg_inst_leakage[2]>>16; // 上位16ビットを返す
       break;
     case REG_INST_LEAKAGE_3+1:
@@ -501,6 +503,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_LEAKAGE_4:
+      modbusbuf.reg_inst_leakage[3] = GetLInstValue(3); //小数点以下切り捨て
       *val = modbusbuf.reg_inst_leakage[3]>>16; // 上位16ビットを返す
       break;
     case REG_INST_LEAKAGE_4+1:
@@ -509,7 +512,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
 
 
     case REG_MAX_VOLTAGE_1:
-      GetVMaxValues(fval,3);
+      GetVMaxValue(fval,3);
       modbusbuf.reg_max_voltage[0] = fval[0]*10.0f;
       *val = modbusbuf.reg_max_voltage[0]>>16; // 上位16ビットを返す
       break;  
@@ -518,7 +521,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_MAX_VOLTAGE_2:
-      GetVMaxValues(fval,3);
+      GetVMaxValue(fval,3);
       modbusbuf.reg_max_voltage[1] = fval[1]*10.0f;
       *val = modbusbuf.reg_max_voltage[1]>>16; // 上位16ビットを返す
       break;  
@@ -527,7 +530,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
       case REG_MAX_VOLTAGE_3:
-      GetVMaxValues(fval,3);
+      GetVMaxValue(fval,3);
       modbusbuf.reg_max_voltage[2] = fval[2]*10.0f;
       *val = modbusbuf.reg_max_voltage[2]>>16; // 上位16ビットを返す
       break;
@@ -536,28 +539,28 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_MAX_LEAKAGE_1:
-      modbusbuf.reg_max_leakage[0] = sampling_t.out_ma_max[0]*10.0f;
+      modbusbuf.reg_max_leakage[0] = GetLMaxValue(0);//小数点以下切り捨て
       *val = modbusbuf.reg_max_leakage[0]>>16; // 上位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_1+1:
       *val = modbusbuf.reg_max_leakage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_2:
-      modbusbuf.reg_max_leakage[1] = sampling_t.out_ma_max[1]*10.0f;
+      modbusbuf.reg_max_leakage[1] = GetLMaxValue(1);//小数点以下切り捨て
       *val = modbusbuf.reg_max_leakage[1]>>16; // 上位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_2+1:
       *val = modbusbuf.reg_max_leakage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_3:
-      modbusbuf.reg_max_leakage[2] = sampling_t.out_ma_max[2]*10.0f;
+      modbusbuf.reg_max_leakage[2] = GetLMaxValue(2);//小数点以下切り捨て
       *val = modbusbuf.reg_max_leakage[2]>>16; // 上位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_3+1:
       *val = modbusbuf.reg_max_leakage[2]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_4:
-      modbusbuf.reg_max_leakage[3] = sampling_t.out_ma_max[3]*10.0f;
+      modbusbuf.reg_max_leakage[3] = GetLMaxValue(3);//小数点以下切り捨て  
       *val = modbusbuf.reg_max_leakage[3]>>16; // 上位16ビットを返す
       break;
     case REG_MAX_LEAKAGE_4+1:
@@ -565,24 +568,21 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_MIN_VOLTAGE_1:
-      GetVMinValues(fval,3);
-      modbusbuf.reg_min_voltage[0] = (uint32_t)(fval[0]*10.0f);
+      modbusbuf.reg_min_voltage[0] = GetVMinValue(0)*10.0f;
       *val = modbusbuf.reg_min_voltage[0]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_VOLTAGE_1+1:
       *val = modbusbuf.reg_min_voltage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_VOLTAGE_2:
-      GetVMinValues(fval,3);
-      modbusbuf.reg_min_voltage[1] = (uint32_t)(fval[1]*10.0f);
+      modbusbuf.reg_min_voltage[1] = GetVMinValue(1)*10.0f;
       *val = modbusbuf.reg_min_voltage[1]>>16; // 上位16ビットを返す
       break;   
     case REG_MIN_VOLTAGE_2+1:
       *val = modbusbuf.reg_min_voltage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_VOLTAGE_3:
-      GetVMinValues(fval,3);
-      modbusbuf.reg_min_voltage[2] = (uint32_t)(fval[2]*10.0f);  
+      modbusbuf.reg_min_voltage[2] = GetVMinValue(2)*10.0f;  
       *val = modbusbuf.reg_min_voltage[2]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_VOLTAGE_3+1:
@@ -590,28 +590,28 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_MIN_LEAKAGE_1:
-      modbusbuf.reg_min_leakage[0] = sampling_t.out_ma_min[0]*10.0f;  
+      modbusbuf.reg_min_leakage[0] = GetLMinValue(0);  //小数点以下切り捨て
       *val = modbusbuf.reg_min_leakage[0]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_1+1:
       *val = modbusbuf.reg_min_leakage[0]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_2:
-      modbusbuf.reg_min_leakage[1] = sampling_t.out_ma_min[1]*10.0f;  
+      modbusbuf.reg_min_leakage[1] = GetLMinValue(1);//小数点以下切り捨て
       *val = modbusbuf.reg_min_leakage[1]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_2+1:
       *val = modbusbuf.reg_min_leakage[1]&0xFFFF; // 下位16ビットを返す
       break;  
     case REG_MIN_LEAKAGE_3:
-      modbusbuf.reg_min_leakage[2] = sampling_t.out_ma_min[2]*10.0f;
+      modbusbuf.reg_min_leakage[2] = GetLMinValue(2);//小数点以下切り捨て
       *val = modbusbuf.reg_min_leakage[2]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_3+1:
       *val = modbusbuf.reg_min_leakage[2]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_4:
-      modbusbuf.reg_min_leakage[3] = sampling_t.out_ma_min[3]*10.0f;
+      modbusbuf.reg_min_leakage[3] = GetLMinValue(3);//小数点以下切り捨て
       *val = modbusbuf.reg_min_leakage[3]>>16; // 上位16ビットを返す
       break;
     case REG_MIN_LEAKAGE_4+1:

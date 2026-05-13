@@ -161,7 +161,7 @@ UI_Disp_enum ui_show_value( void )
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    GetVValues(fval,3);
+    GetVInstValue(fval,3);
     sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
     ChlcdPrint( 0, 0, lcd_str );s
     sprintf( (char*)lcd_str, "V1 %5.1fV ", fval[1] );

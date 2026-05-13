@@ -71,7 +71,7 @@ int Leak100ms_5060_PushSamples(Leak100ms_5060 *st, const int16_t *samples, uint3
 float Leak100ms_5060_GetLast_mA(const Leak100ms_5060 *st);
 int Leak100ms_5060_Is60Hz(const Leak100ms_5060 *st);
 
-void Calc_ResetMinLeakValue(void);
-void Calc_ResetMaxLeakValue(void);
+void ResetMinLeakValue(void);
+void ResetMaxLeakValue(void);
 
 #endif

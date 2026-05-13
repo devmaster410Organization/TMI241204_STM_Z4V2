@@ -58,6 +58,8 @@ static const char * const PSTR_VOLT_CALIB1_GAIN      = "volt_calib1_gain";
 static const char * const PSTR_VOLT_CALIB1_OFFSET    = "volt_calib1_offset";
 static const char * const PSTR_VOLT_CALIB2_GAIN      = "volt_calib2_gain";
 static const char * const PSTR_VOLT_CALIB2_OFFSET    = "volt_calib2_offset";
+static const char * const PSTR_VOLT_CALIB3_GAIN      = "volt_calib3_gain";
+static const char * const PSTR_VOLT_CALIB3_OFFSET    = "volt_calib3_offset";
 static const char * const PSTR_LEAKAGE_CALIB1_GAIN   = "leakage_calib1_gain";
 static const char * const PSTR_LEAKAGE_CALIB1_OFFSET = "leakage_calib1_offset";
 static const char * const PSTR_LEAKAGE_CALIB2_GAIN   = "leakage_calib2_gain";
@@ -285,6 +287,7 @@ typedef enum{
   KWD_VERSION,
   KWD_HELP,
   KWD_RESET,
+  KWD_MODE,
   KWD_SET,
   KWD_GET,
   KWD_STATUS,
@@ -305,6 +308,7 @@ const T_KEYWORD t_command[]={
 	{KWD_RESET, "reset", "Reset System"},
 	{KWD_SET, "set", "Set Parameter"},
 	{KWD_GET, "get", "Get Parameter"},
+	{KWD_MODE, "mode", "Set Mode"},
 	{KWD_POWER,"power","Drive Relay ON"},
 	{KWD_STATUS, "status", "Show Status"},
 	{KWD_MAX, "", ""}
@@ -521,6 +525,10 @@ static void print_setup_param( const char *param )
 		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB2_GAIN, (double)g_setup.volt_calib[1].gain);
 	} else if( strcmp(param, PSTR_VOLT_CALIB2_OFFSET) == 0 ){
 		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB2_OFFSET, (double)g_setup.volt_calib[1].offset);
+	} else if( strcmp(param, PSTR_VOLT_CALIB3_GAIN) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB3_GAIN, (double)g_setup.volt_calib[2].gain);
+	} else if( strcmp(param, PSTR_VOLT_CALIB3_OFFSET) == 0 ){
+		snprintf(str, sizeof(str), "%s:%.6g", PSTR_VOLT_CALIB3_OFFSET, (double)g_setup.volt_calib[2].offset);
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_GAIN) == 0 ){
 		snprintf(str, sizeof(str), "%s:%.6g", PSTR_LEAKAGE_CALIB1_GAIN, (double)g_setup.leakage_calib[0].gain);
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_OFFSET) == 0 ){
@@ -563,6 +571,8 @@ static void print_all_setup_params( void )
 	print_setup_param(PSTR_VOLT_CALIB1_OFFSET);
 	print_setup_param(PSTR_VOLT_CALIB2_GAIN);
 	print_setup_param(PSTR_VOLT_CALIB2_OFFSET);
+	print_setup_param(PSTR_VOLT_CALIB3_GAIN);
+	print_setup_param(PSTR_VOLT_CALIB3_OFFSET);
 	print_setup_param(PSTR_LEAKAGE_CALIB1_GAIN);
 	print_setup_param(PSTR_LEAKAGE_CALIB1_OFFSET);
 	print_setup_param(PSTR_LEAKAGE_CALIB2_GAIN);
@@ -580,6 +590,11 @@ static int set_setup_param( const char *param, const char *value )
 	uint16_t u16v;
 	uint8_t ip[4];
 	float fv;
+
+	if( g_sys.mode == SYS_MODE_RUN ){
+		usb_puts("Cannot set parameter in RUN mode");
+		return 0;
+	}
 
 	if( strcmp(param, PSTR_MODBUS_SLAVE_ADDRESS) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
@@ -738,6 +753,9 @@ static int analyze_command( char *buf )
 			case KWD_GET:
 				cmd_get();
 				break;
+			case KWD_MODE:
+				cmd_mode(); // for now, just show current mode
+				break;
 			case KWD_POWER:
 				break;
 			case KWD_STATUS:
@@ -820,6 +838,21 @@ static int cmd_get(  void )
 	}
 
 	print_setup_param(param);
+	return 0;
+}
+
+static int cmd_mode(  void )
+{
+	char str[40];
+	if( usbcb.word_num == 1 ){ // mode command
+		snprintf(str, sizeof(str), "Current Mode: %s", (g_sys.mode == SYS_MODE_RUN) ? "RUN" : "SETUP");
+		usb_puts(str);
+	} else{
+		if( !copy_word_to_buf(1, param, sizeof(param)) ){
+		usb_puts("Invalid parameter token.");
+		return 0;	
+	}
+
 	return 0;
 }
 

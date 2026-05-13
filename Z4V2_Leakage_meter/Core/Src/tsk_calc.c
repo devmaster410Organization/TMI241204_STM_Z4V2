@@ -42,6 +42,24 @@ float set_K( uint16_t ct_type )
   }
 }
 
+
+/// @brief 
+/// @param  
+void init_calc( void )
+{
+  sampling_t.k_ma[0] = set_K( g_setup.ct_type[0]);
+  sampling_t.k_ma[1] = set_K( g_setup.ct_type[1]);
+  sampling_t.k_ma[2] = set_K( g_setup.ct_type[2]);
+  sampling_t.k_ma[3] = set_K( g_setup.ct_type[3]);
+
+  Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], FS_HZ,sampling_t.k_ma[0] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN4_CHANNEL], FS_HZ,sampling_t.k_ma[1] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], FS_HZ,sampling_t.k_ma[2] ,ALPHA, 0.10f, 0.995f, 1.30f );
+	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], FS_HZ,sampling_t.k_ma[3] ,ALPHA, 0.10f, 0.995f, 1.30f );
+
+}
+
+
 /// @brief Calculate task
 /// @param  
 volatile uint8_t idxx;
@@ -49,7 +67,7 @@ volatile uint8_t idxx;
 void tsk_calc( void )
 {
 	uint8_t idx;
-  g_sys.mode = MODE_MEASURE;
+  g_sys.mode = MODE_SETUP;  
   g_sys.mode_next = MODE_MEASURE;
 	init_sample_buf();
   Culc_vol_init();  //vol
@@ -75,20 +93,16 @@ void tsk_calc( void )
   sampling_t.current_temp = 25.0f;//初期値
   sampling_t.current_vbat = 3.3f; //初期値
   sampling_t.current_vdda = 3.0f; //初期値
-  sampling_t.k_ma[0] = set_K( g_setup.ct_type[0]);
-  sampling_t.k_ma[1] = set_K( g_setup.ct_type[1]);
-  sampling_t.k_ma[2] = set_K( g_setup.ct_type[2]);
-  sampling_t.k_ma[3] = set_K( g_setup.ct_type[3]);
 
-  Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], FS_HZ,sampling_t.k_ma[0] ,ALPHA, 0.10f, 0.995f, 1.30f );
-	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN4_CHANNEL], FS_HZ,sampling_t.k_ma[1] ,ALPHA, 0.10f, 0.995f, 1.30f );
-	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], FS_HZ,sampling_t.k_ma[2] ,ALPHA, 0.10f, 0.995f, 1.30f );
-	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], FS_HZ,sampling_t.k_ma[3] ,ALPHA, 0.10f, 0.995f, 1.30f );
+
+  init_calc();
 	
 	for(;;){
     if( g_sys.mode_next != g_sys.mode ){
         switch( g_sys.mode_next ){
             case MODE_MEASURE:
+                init_calc();
+                InitCalcStat();
                 // MODE_MEASUREへ移行するときの処理
                 break;
             case MODE_SETUP:
@@ -116,53 +130,32 @@ void tsk_calc( void )
 			idx = msg;
 			idxx = idxx;
 			st_sample_buf *pbuf = &sampling_t.sample_buf_t[idx];
-			if( idx < SAMPLE_INDEX_MAX ){
+			if( idx < SAMPLE_INDEX_MAX && g_sys.mode == MODE_MEASURE ){
 				int rslt;
 				float f;
 
         int16_t adcv[2] = { pbuf->buf[QSEL_IN1_CHANNEL], pbuf->buf[QSEL_IN2_CHANNEL] };
         float vol[3];
         rslt = Culc_vol( adcv ,vol);
-        push_voltage_stat( vol );
-        
+        PushVoltageStat( vol );
         rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
-          push_leakage_stat( 0, f );
+          PushLeakageStat( 0, f );
         }
 				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN4_CHANNEL], &pbuf->buf[QSEL_IN4_CHANNEL], 1,&f);
 				if(rslt == 1){
-          if( g_sys.leakage_cancel_counter[1] > 0 ){
-            g_sys.leakage_cancel_counter[1]--;
-            f = 0.0f;
-          }else{
-  					f = g_setup.leakage_calib[1].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[1].offset;
-					  sampling_t.out_ma[QSEL_IN4_CHANNEL] = f;
-          }
+          PushLeakageStat( 1, f );
         }
 				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], &pbuf->buf[QSEL_IN12_CHANNEL], 1,&f);
 				if(rslt == 1){
-          if( g_sys.leakage_cancel_counter[2] > 0 ){
-            g_sys.leakage_cancel_counter[2]--;
-            f = 0.0f;
-          }else{
-  					f = g_setup.leakage_calib[2].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[2].offset;
-					  sampling_t.out_ma[QSEL_IN12_CHANNEL] = f;
-          }
+          PushLeakageStat( 2, f );
         }
 				rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], &pbuf->buf[QSEL_IN13_CHANNEL], 1,&f);
 				if(rslt == 1){
-          if( g_sys.leakage_cancel_counter[3] > 0 ){
-            g_sys.leakage_cancel_counter[3]--;
-            f = 0.0f;
-          }else{
-  					f = g_setup.leakage_calib[3].gain*(f * Calc_GetAdcVddaScale()) + g_setup.leakage_calib[3].offset;
-				  	sampling_t.out_ma[QSEL_IN13_CHANNEL] = f;
-          }
+          PushLeakageStat( 3, f );
         }
-				pbuf->en = 0;
-			}else{
-				//
 			}
+			pbuf->en = 0;
 			break;
 		case osErrorTimeout:
 			sampling_t.osMessageGetTimeoutCount++;
@@ -191,12 +184,12 @@ static void init_sample_buf( void )
 
 /// @brief 最小値の初期化
 /// @param  
-void Calc_ResetMinLeakValue(void)
+void ResetMinLeakValue(void)
 {
 }
 /// @brief 最大値の初期化
 /// @param  
-void Calc_ResetMaxLeakValue(void)
+void ResetMaxLeakValue(void)
 {
 }
 
@@ -621,7 +614,7 @@ void Process_ADC_Values( void ) {
   systemp = sampling_t.current_temp;
   sysvbat = sampling_t.current_vbat;
   
-  }
+ }
 
 
 void GetADCRawValues( uint16_t *adc_values,int num)
@@ -633,12 +626,6 @@ void GetADCRawValues( uint16_t *adc_values,int num)
 
 
 
-void GetVZValues( float *adc_values,int num)
-{
-    for(int i =0;i<num;i++){
-    	adc_values[i] = sampling_t.out_ma[i];
-    }
-}
 
 uint16_t GetVCycle( void )
 {

@@ -87,9 +87,6 @@ typedef struct{
     sys_mode_t mode;  //
     sys_mode_t mode_next; // モード遷移先。mode_next != mode のとき、modeをmode_nextに切り替える
 
-
-    uint16_t volt_cancel_counter;
-    uint16_t leakage_cancel_counter[4]
 }sys_t;
 extern sys_t g_sys;
 
@@ -104,9 +101,11 @@ extern osMessageQId queue_ADCHandle;
 
 
 
-#define KE1_MIN_VOL 99999.9f
-#define KE1_MAX_VOL 0.0f
+#define KE1_MIN_VOL 0.0f
+#define KE1_MAX_VOL 99999.9f
 
+#define KE1_MIN_LEAK 0.0f
+#define KE1_MAX_LEAK 2000.0f
 
 
 #define QSEL_IN1_CHANNEL   0x0000
@@ -163,9 +162,11 @@ typedef struct {
   st_sample_buf sample_buf_t[SAMPLE_INDEX_MAX];
   uint8_t st_sample_buf_index;
   Leak100ms_5060 leak100ms_t[ADC2_CH_NUM];
+/*
   float out_ma[ADC2_CH_NUM];
   float out_ma_max[ADC2_CH_NUM];
   float out_ma_min[ADC2_CH_NUM];
+*/
   float k_ma[ADC2_CH_NUM];
   uint16_t v0_cycle_time;
   float V0Hz;

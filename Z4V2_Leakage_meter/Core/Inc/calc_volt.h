@@ -11,14 +11,15 @@ float CnvVolAbs( int32_t cur_ad_integ, float timsec );
 float CnvVolBi( int32_t cur_ad_integ, float timsec );
 int32_t CnvAdcBi( float fcur , float timsec );
 void Culc_vol_init(void);
-int Culc_vol( int16_t *data_ac);
-void GetVValues( float *v,int num );
-void Calc_ResetMinVoltValue(void);
-void Calc_ResetMaxVoltValue(void);
+int Culc_vol( int16_t *data_ac,float *volt);
 
-int culc_vol( float *cur , float *volt);
-void GetVMaxValues( float *v,int num );
-void GetVMinValues( float *v,int num );
+
+void GetVInstValue( float *v,int num );
+void ResetMinVoltValue(void);
+void ResetMaxVoltValue(void);
+
+void GetVMaxValue( float *v,int num );
+void GetVMinValue( float *v,int num );
 
 
 

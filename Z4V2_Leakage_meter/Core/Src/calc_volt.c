@@ -153,7 +153,7 @@ void adj_centor(int16_t *adcv)
 /// @brief 
 /// @param cur 
 /// @return 
-int culc_vol( float *cur , float *volt)
+static int culc_vol( float *cur , float *volt)
 {
 	int flg = 0;
 	float vdda_scale = 1.0f;
@@ -174,19 +174,8 @@ int culc_vol( float *cur , float *volt)
 				continue;
 			} 
 			f =  CnvVolAbs( tAc.adc_total[i], 0.1f	) * vdda_scale;	//0.1secで平均値をとる
-			f = g_setup.volt_calib[i].gain * f  + g_setup.volt_calib[i].offset;
 			*volt++  = f;
-/*
-				tAc.vol[i] = f;
-				tAc.adc_total[i] = 0;
-				if(tAc.vol[i] > tAc.vol_max[i]){
-					tAc.vol_max[i] = tAc.vol[i];
-				}
-				if(tAc.vol[i] < tAc.vol_min[i]){
-					tAc.vol_min[i] = tAc.vol[i];
-				}
-			}
-*/
+
 		}
 	}
 	
@@ -196,8 +185,9 @@ int culc_vol( float *cur , float *volt)
 
 /// @brief 
 /// @param adcv :uint16_t data_ac[2] : ADCの生値。　センサーに電流が流れていないときの値を中心値として、差分を取る。
+/// @param volt : float volt[3] : 電圧値の出力。　単位はV。　0: 1相目, 1: 2相目, 2: 3相目
 /// @return 1: 計算完了, 0: 計算中 
-int Culc_vol( int16_t *adcv)
+int Culc_vol( int16_t *adcv, float *volt)
 {
 	int flg;
 	float ct_2_diff[2] ;
@@ -209,49 +199,7 @@ int Culc_vol( int16_t *adcv)
 	}
 
 	cnv_2ct3cur(ct_2_diff, ct_values_diff);
-	flg = culc_vol(ct_values_diff);
+	flg = culc_vol(ct_values_diff, volt);
 	adj_centor(adcv);
 	return flg;
 }
-
-
-void GetVValues( float *v,int num )
-{
-	for(int i = 0;i<num;i++){
-		v[i] = tAc.vol[i];
-	}
-}
-
-void GetVMaxValues( float *v,int num )
-{
-	for(int i = 0;i<num;i++){
-		v[i] = tAc.vol_max[i];
-	}
-}
-
-void GetVMinValues( float *v,int num )
-{
-	for(int i = 0;i<num;i++){
-		v[i] = tAc.vol_min[i];
-	}
-}		
-
-
-/// @brief 最小値の初期化
-/// @param  
-void Calc_ResetMinVoltValue(void)
-{
-	for(int j = 0;j<3;j++){
-		tAc.vol_min[j] = KE1_MIN_VOL;
-	}
-}
-/// @brief 最大値の初期化
-/// @param  
-void Calc_ResetMaxVoltValue(void)
-{
-	for(int j = 0;j<3;j++){
-		tAc.vol_max[j] = KE1_MAX_VOL;
-	}
-}
-
-
