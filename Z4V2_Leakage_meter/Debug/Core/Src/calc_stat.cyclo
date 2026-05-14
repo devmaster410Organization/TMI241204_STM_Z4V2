@@ -1,0 +1,17 @@
+../Core/Src/calc_stat.c:16:13:set_range_leak1	3
+../Core/Src/calc_stat.c:34:10:get_average_count	11
+../Core/Src/calc_stat.c:54:6:InitCalcStat	3
+../Core/Src/calc_stat.c:83:5:average_volt	2
+../Core/Src/calc_stat.c:103:5:avarage_leak	2
+../Core/Src/calc_stat.c:121:6:PushVoltageStat	8
+../Core/Src/calc_stat.c:159:6:PushLeakageStat	12
+../Core/Src/calc_stat.c:223:7:GetVInstValue	2
+../Core/Src/calc_stat.c:234:7:GetVMaxValue	2
+../Core/Src/calc_stat.c:246:7:GetVMinValue	2
+../Core/Src/calc_stat.c:257:6:ResetMinVoltValue	2
+../Core/Src/calc_stat.c:266:6:ResetMaxVoltValue	2
+../Core/Src/calc_stat.c:279:7:GetLInstValue	2
+../Core/Src/calc_stat.c:290:7:GetLMaxValue	2
+../Core/Src/calc_stat.c:302:7:GetLMinValue	2
+../Core/Src/calc_stat.c:312:6:ResetMinLeakValue	2
+../Core/Src/calc_stat.c:321:6:ResetMaxLeakValue	2

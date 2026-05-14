@@ -5,6 +5,7 @@
 "./Core/ReiwaStd/uart_drvsmpl.o"
 "./Core/Src/app_freertos.o"
 "./Core/Src/calc_leak.o"
+"./Core/Src/calc_stat.o"
 "./Core/Src/calc_volt.o"
 "./Core/Src/chlcd.o"
 "./Core/Src/hal_flash.o"

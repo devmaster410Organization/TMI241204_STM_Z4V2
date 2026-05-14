@@ -19,7 +19,7 @@ typedef struct{
   uint32_t avarage_count; //平均化の回数
 
   float volt_total[VOLT_CH_NUM];
-  uint32_t volt_total_count;
+  uint32_t volt_total_count[VOLT_CH_NUM];
   float leak_total[LEAK_CH_NUM];
   uint32_t leak_total_count[LEAK_CH_NUM];
 
@@ -54,5 +54,5 @@ float GetLMaxValue( int ch );
 float GetLMinValue( int ch );
 void ResetMinLeakValue(void);
 void ResetMaxLeakValue(void);
- 
+
 #endif /* INC_CALC_STAT_H_ */

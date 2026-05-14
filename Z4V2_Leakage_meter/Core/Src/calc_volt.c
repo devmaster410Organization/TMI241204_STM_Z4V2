@@ -85,21 +85,12 @@ void Culc_vol_init(void)
 	tAc.adc_center_first_flg = 1;
 	for(int j = 0;j<2;j++){
 		tAc.adc_center_total[j] = 0;
-		tAc.adc_center[j] = 4696/2; // 4696は実測値。　ADCの生値で、センサーに電流が流れていないときの値。　これを中心値として、差分を取る。
+		tAc.adc_center[j] = 4096/2; // 4096	は　ADCの中点。　ADCの生値で、センサーに電流が流れていないときの値。　これを中心値として、差分を取る。
 	}
 	tAc.adc_total_seccnt = 0;
 	for(int j = 0;j<3;j++){
 		tAc.adc_total[j] = 0;
-		tAc.vol[j] = 0.0f;
 	}
-	tAc.vol_max[0] = KE1_MAX_VOL;
-	tAc.vol_max[1] = KE1_MAX_VOL;
-	tAc.vol_max[2] = KE1_MAX_VOL;
-	tAc.vol_min[0] = KE1_MIN_VOL;
-	tAc.vol_min[1] = KE1_MIN_VOL;
-	tAc.vol_min[2] = KE1_MIN_VOL;
-
-
 }
 
 
@@ -132,7 +123,7 @@ void adj_centor(int16_t *adcv)
 		tAc.adc_total_centor_seccnt = 0;
 		for(int j = 0;j<2;j++){
 			float center;			
-			center = tAc.adc_center_total[j]/I32_ADC_HZ;
+			center = (float)tAc.adc_center_total[j]/I32_ADC_HZ;
 			if(tAc.adc_center_first_flg ){	//　first time 
 				tAc.adc_center[j] = center;				
 			}else{
@@ -169,13 +160,9 @@ static int culc_vol( float *cur , float *volt)
 		vdda_scale = Calc_GetAdcVddaScale();
 		for(int i = 0;i<3;i++){
 			float f;
-			if( (g_setup.ac_phase_wire == PRM_PHASE_WIRE_1P2W) && (i != 0 ) ){ // 単相2線のとき、2相目は存在しないので0にする
-				tAc.vol[i] = 0.0f;
-				continue;
-			} 
 			f =  CnvVolAbs( tAc.adc_total[i], 0.1f	) * vdda_scale;	//0.1secで平均値をとる
 			*volt++  = f;
-
+			tAc.adc_total[i] = 0.0f;
 		}
 	}
 	

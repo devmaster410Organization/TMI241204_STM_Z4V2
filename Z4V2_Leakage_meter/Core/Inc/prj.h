@@ -70,7 +70,6 @@ void tsk_ui( void );
 void tsk_usb( void );
 void tsk_modbus_slave( void );
 void GetADCRawValues( uint16_t *adc1_values,int num);
-void GetVZValues( float *adc1_values,int num);
 float Calc_GetAdcVddaScale( void );
 
 typedef enum{
@@ -184,5 +183,4 @@ float Calc_GetAdcVddaScale( void );
 #include "util.h"
 #include "tsk_modbus.h"
 #include "modbus_reg.h"
-
 #endif /* INC_PRJ_H_ */

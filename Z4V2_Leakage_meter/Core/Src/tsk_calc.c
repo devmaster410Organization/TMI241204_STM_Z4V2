@@ -42,7 +42,7 @@ float set_K( uint16_t ct_type )
   }
 }
 
-
+#define ALPHA 0.05f
 /// @brief 
 /// @param  
 void init_calc( void )
@@ -63,14 +63,13 @@ void init_calc( void )
 /// @brief Calculate task
 /// @param  
 volatile uint8_t idxx;
-#define ALPHA 0.05f
+
 void tsk_calc( void )
 {
 	uint8_t idx;
   g_sys.mode = MODE_SETUP;  
   g_sys.mode_next = MODE_MEASURE;
 	init_sample_buf();
-  Culc_vol_init();  //vol
 	Start_ADC_DMA();
 	Start_Capture_Synced();
   HAL_TIM_Base_Start(&htim15);  // 10uSec カウンター
@@ -95,12 +94,12 @@ void tsk_calc( void )
   sampling_t.current_vdda = 3.0f; //初期値
 
 
-  init_calc();
 	
 	for(;;){
     if( g_sys.mode_next != g_sys.mode ){
         switch( g_sys.mode_next ){
             case MODE_MEASURE:
+                Culc_vol_init();  //vol
                 init_calc();
                 InitCalcStat();
                 // MODE_MEASUREへ移行するときの処理
@@ -137,7 +136,10 @@ void tsk_calc( void )
         int16_t adcv[2] = { pbuf->buf[QSEL_IN1_CHANNEL], pbuf->buf[QSEL_IN2_CHANNEL] };
         float vol[3];
         rslt = Culc_vol( adcv ,vol);
-        PushVoltageStat( vol );
+        if(rslt == 1){
+            PushVoltageStat( vol );
+        }
+
         rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
 				if(rslt == 1){
           PushLeakageStat( 0, f );
@@ -174,24 +176,10 @@ static void init_sample_buf( void )
 {
   memset( &sampling_t.sample_buf_t, 0, sizeof(sampling_t.sample_buf_t) );
   sampling_t.st_sample_buf_index = 0;
-  for(int i=0; i<SAMPLE_INDEX_MAX; i++){
-   	g_sys.leakage_cancel_counter[i] = 60;	// 最初の6秒は出力しない
-  }
-  g_sys.volt_cancel_counter = 60;	// 最初の6秒は出力しない
 
 }
 
 
-/// @brief 最小値の初期化
-/// @param  
-void ResetMinLeakValue(void)
-{
-}
-/// @brief 最大値の初期化
-/// @param  
-void ResetMaxLeakValue(void)
-{
-}
 
 // 例: TIM2=Master, TIM4=Slave とする
 static void Start_Capture_Synced(void)
@@ -359,7 +347,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
         sampling_t.v0_cycle_time = (uint16_t)rslt;
         sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
       }
-PORT_TGL(TP8);
+//PORT_TGL(TP8);
     }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1
       pin_state = PORT_READ( LPH1 );
     	ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);

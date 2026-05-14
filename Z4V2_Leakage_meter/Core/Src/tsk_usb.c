@@ -28,6 +28,8 @@ static void usbEchoBack( char c);
 static int cmd_set(  void );
 static int cmd_get(  void );
 static int cmd_status(  void );
+static int cmd_mode(  void );
+
 static int copy_word_to_buf( uint16_t index, char *out, size_t out_size );
 static bool parse_u32_token( const char *token, uint32_t *out );
 static bool parse_u8_token( const char *token, uint8_t *out );
@@ -591,8 +593,8 @@ static int set_setup_param( const char *param, const char *value )
 	uint8_t ip[4];
 	float fv;
 
-	if( g_sys.mode == SYS_MODE_RUN ){
-		usb_puts("Cannot set parameter in RUN mode");
+	if( g_sys.mode == MODE_MEASURE ){
+		usb_puts("Cannot set parameter in MEAS mode");
 		return 0;
 	}
 
@@ -844,19 +846,15 @@ static int cmd_get(  void )
 static int cmd_mode(  void )
 {
 	char str[40];
+	char param[40];
 	if( usbcb.word_num == 1 ){ // mode command
-		snprintf(str, sizeof(str), "Current Mode: %s", (g_sys.mode == SYS_MODE_RUN) ? "RUN" : "SETUP");
+		snprintf(str, sizeof(str), "Current Mode: %s", (g_sys.mode == MODE_MEASURE) ? "RUN" : "SETUP");
 		usb_puts(str);
-	} else{
-		if( !copy_word_to_buf(1, param, sizeof(param)) ){
-		usb_puts("Invalid parameter token.");
-		return 0;	
 	}
-
 	return 0;
 }
 
-extern float sysvdda,systemp,sysvbat;
+extern float sysvdda;
 
 static int cmd_status(  void )
 {
@@ -872,5 +870,4 @@ static int cmd_status(  void )
 		usb_puts(str);
 	}
 	return 0;
-
 }

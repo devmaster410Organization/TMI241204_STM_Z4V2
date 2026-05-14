@@ -430,14 +430,13 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
 int MODBUS_get_reg(uint16_t add, int16_t *val) 
 {
 	int ret = EXCEPTION_CODE_OK;
-  float fval[4];
 //	int a,b;
 //	int sadd;
 
 	switch( add ){
     case REG_INST_VOLTAGE_1:
-      GetVInstValue(fval,3);
-      modbusbuf.reg_inst_voltage[0] = (uint32_t)(fval[0]*10.0);
+      ;
+      modbusbuf.reg_inst_voltage[0] = (uint32_t)(GetVInstValue(0)*10.0);
       *val = modbusbuf.reg_inst_voltage[0]>>16; // 上位16ビットを返す
       break;
     case REG_INST_VOLTAGE_1+1:
@@ -445,16 +444,14 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_INST_VOLTAGE_2:
-      GetVInstValue(fval,3);
-      modbusbuf.reg_inst_voltage[1] = (uint32_t)(fval[1]*10.0); 
+      modbusbuf.reg_inst_voltage[1] = (uint32_t)(GetVInstValue(1)*10.0); 
       *val = modbusbuf.reg_inst_voltage[1]>>16; // 上位16ビットを返す
       break;
     case REG_INST_VOLTAGE_2+1:
       *val = modbusbuf.reg_inst_voltage[1]&0xFFFF; // 下位16ビットを返す
       break;
     case REG_INST_VOLTAGE_3:
-      GetVInstValue(fval,3);
-      modbusbuf.reg_inst_voltage[2] = (uint32_t)(fval[2]*10.0);
+      modbusbuf.reg_inst_voltage[2] = (uint32_t)(GetVInstValue(2) *10.0);
       *val = modbusbuf.reg_inst_voltage[2]>>16; // 上位16ビットを返す
       break;
     case REG_INST_VOLTAGE_3+1:
@@ -512,8 +509,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
 
 
     case REG_MAX_VOLTAGE_1:
-      GetVMaxValue(fval,3);
-      modbusbuf.reg_max_voltage[0] = fval[0]*10.0f;
+      modbusbuf.reg_max_voltage[0] = GetVMaxValue(0)*10.0f;
       *val = modbusbuf.reg_max_voltage[0]>>16; // 上位16ビットを返す
       break;  
     case REG_MAX_VOLTAGE_1+1:
@@ -521,8 +517,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
     case REG_MAX_VOLTAGE_2:
-      GetVMaxValue(fval,3);
-      modbusbuf.reg_max_voltage[1] = fval[1]*10.0f;
+      modbusbuf.reg_max_voltage[1] = GetVMaxValue(1)*10.0f;
       *val = modbusbuf.reg_max_voltage[1]>>16; // 上位16ビットを返す
       break;  
     case REG_MAX_VOLTAGE_2+1:
@@ -530,8 +525,7 @@ int MODBUS_get_reg(uint16_t add, int16_t *val)
       break;
 
       case REG_MAX_VOLTAGE_3:
-      GetVMaxValue(fval,3);
-      modbusbuf.reg_max_voltage[2] = fval[2]*10.0f;
+      modbusbuf.reg_max_voltage[ 2] = GetVMaxValue(2)*10.0f;
       *val = modbusbuf.reg_max_voltage[2]>>16; // 上位16ビットを返す
       break;
     case REG_MAX_VOLTAGE_3+1:

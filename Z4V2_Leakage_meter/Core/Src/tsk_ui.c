@@ -161,26 +161,22 @@ UI_Disp_enum ui_show_value( void )
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    GetVInstValue(fval,3);
-    sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
-    ChlcdPrint( 0, 0, lcd_str );s
-    sprintf( (char*)lcd_str, "V1 %5.1fV ", fval[1] );
+    
+    sprintf( (char*)lcd_str, "V0 %5.1fV", GetVInstValue(0) );
+    ChlcdPrint( 0, 0, lcd_str );
+    sprintf( (char*)lcd_str, "V1 %5.1fV ", GetVInstValue(1) );
     ChlcdPrint( 0, 1, lcd_str );
-    sprintf( (char*)lcd_str, "V2 %5.1fV", fval[2] );
+    sprintf( (char*)lcd_str, "V2 %5.1fV", GetVInstValue(2) );
     ChlcdPrint( 0, 2, lcd_str );
 
-    GetVZValues(fval,ADC_NUM);
-    sprintf( (char*)lcd_str, "V0 %5.1fV", fval[0] );
-    ChlcdPrint( 0, 3, lcd_str );
 
-
-    sprintf( (char*)lcd_str, "Z0 %7.3f", fval[2] );
+    sprintf( (char*)lcd_str, "Z0 %7.3f", GetLInstValue(0) );
     ChlcdPrint( 10, 0, lcd_str );
-    sprintf( (char*)lcd_str, "Z1 %7.3f", fval[3] );
+    sprintf( (char*)lcd_str, "Z1 %7.3f", GetLInstValue(1) );
     ChlcdPrint( 10, 1, lcd_str );
-    sprintf( (char*)lcd_str, "Z2 %7.3f", fval[4] );
-    ChlcdPrint( 10, 2, lcd_str );
-    sprintf( (char*)lcd_str, "Z3 %7.3f", fval[5] );
+    sprintf( (char*)lcd_str, "Z2 %7.3f", GetLInstValue(2)  );
+    ChlcdPrint( 10, 2, lcd_str ); 
+    sprintf( (char*)lcd_str, "Z3 %7.3f", GetLInstValue(3) );
     ChlcdPrint( 10, 3, lcd_str );
     osDelay( 99 );
     uint8_t keystat = KEY_pget();

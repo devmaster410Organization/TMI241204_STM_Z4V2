@@ -14,12 +14,6 @@ void Culc_vol_init(void);
 int Culc_vol( int16_t *data_ac,float *volt);
 
 
-void GetVInstValue( float *v,int num );
-void ResetMinVoltValue(void);
-void ResetMaxVoltValue(void);
-
-void GetVMaxValue( float *v,int num );
-void GetVMinValue( float *v,int num );
 
 
 
