@@ -146,7 +146,7 @@ uint8_t UART_puts( T_UART_MAN *ptuartman,char * str )
 			ptuartman->tr485sta_job();
 		}
 		len = strlen(str);
-		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,str,len);
+		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,(uint8_t*)str,len);
 		if(halstat == HAL_OK){
 			ptuartman->flg_snd = 1;
 			ret = UART_OK;
@@ -173,7 +173,7 @@ uint8_t UART_nputs( T_UART_MAN *ptuartman,char *data , uint32_t len)
 		if(	ptuartman->tr485sta_job != NULL ){
 			ptuartman->tr485sta_job();
 		}
-		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,data,len);
+		halstat = HAL_UART_Transmit_IT( ptuartman->phuart,(uint8_t*)data,len);
 		if(halstat == HAL_OK){
 			ptuartman->flg_snd = 1;
 			ret = UART_OK;

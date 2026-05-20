@@ -141,6 +141,21 @@ void tsk_calc( void )
         }
 
         rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);
+        if(g_sys.monz0_count > 0){
+          g_sys.monz0_count--;
+          char str[10];
+          sprintf(str, "%d\r", pbuf->buf[QSEL_IN3_CHANNEL]);
+          for(int i = 0;str[i] != 0;i++){
+            uint16_t qmsg = USBMSG_PACK(USBMSG_SRC_MONITOR, str[i]);
+            osStatus result = osMessageQueuePut(queue_USBHandle, &qmsg, 0, 0); // timeout 0
+            if( result != osOK){
+              break;
+            }
+          }
+
+
+
+        }
 				if(rslt == 1){
           PushLeakageStat( 0, f );
         }

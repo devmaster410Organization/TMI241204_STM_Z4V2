@@ -18,14 +18,14 @@ extern uint32_t _backup_sub_flash_start;	//sector 104-111 top address
 static setup_t tsetupwork __attribute__ ((aligned(4)));	// 関数に渡すときに uint32_t *なので
 
 const setup_t setup_default = {
-	.modbus_slave_address = 1,
+	.modbus_slave_address = 11,
 	.rs485_baudrate = PRM_BAUDRATE_38400,
 	.rs485_stop_bit = PRM_STOP_BIT_2,
 	.rs485_parity = PRM_PARITY_NONE,
 	.rs485_bit_length = PRM_DATA_BIT_8,
 	.response_delay_ms = 0,
 	.leakage_low_cut = 0.1f,
-	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
+	.ac_phase_wire = PRM_PHASE_WIRE_1P3W,
 	.ct_type = {PRM_LEAKAGE_CT_OTG_LA21,PRM_LEAKAGE_CT_MZ1H,PRM_LEAKAGE_CT_MZ1H,PRM_LEAKAGE_CT_MZ1H},
 	.avarage_count = PRM_AVG_0,
 /*
@@ -39,7 +39,7 @@ const setup_t setup_default = {
 };	
 
 const setup_t setup_max = {
-	.modbus_slave_address = 1,
+	.modbus_slave_address = 254,
 	.rs485_baudrate = PRM_BAUDRATE_115200,
 	.rs485_stop_bit = PRM_STOP_BIT_2,
 	.rs485_parity = PRM_PARITY_ODD,

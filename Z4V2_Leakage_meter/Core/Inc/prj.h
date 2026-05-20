@@ -86,6 +86,7 @@ typedef struct{
     sys_mode_t mode;  //
     sys_mode_t mode_next; // モード遷移先。mode_next != mode のとき、modeをmode_nextに切り替える
 
+    uint16_t monz0_count;
 }sys_t;
 extern sys_t g_sys;
 
@@ -94,6 +95,7 @@ extern osMessageQId queue_ADCHandle;
 
 // queue_USBHandle message format (16bit): [15:8]=source id, [7:0]=payload byte
 #define USBMSG_SRC_USB     (0x01U)
+#define USBMSG_SRC_MONITOR (0x02U)
 #define USBMSG_PACK(src,ch)  ((uint16_t)((((uint16_t)(src) & 0xFFU) << 8) | ((uint16_t)(ch) & 0x00FFU)))
 #define USBMSG_GET_SRC(msg)  ((uint8_t)((((uint16_t)(msg)) >> 8) & 0xFFU))
 #define USBMSG_GET_CHAR(msg) ((uint8_t)(((uint16_t)(msg)) & 0x00FFU))

@@ -160,41 +160,48 @@ void tsk_usb( void )
 //		HAL_USB_GetState(&hUsbDeviceFS); // USBの状態を確認
         rcvdata = usbGetChar(USB_RCV_TIMEOUT);
         if (rcvdata != USB_RCV_TIMEOUT_CODE) {
-            if (USBMSG_GET_SRC(rcvdata) != USBMSG_SRC_USB) {
-                continue;
-            }
-            key = (char)USBMSG_GET_CHAR(rcvdata);
-            usbcb.rcvtimeout = 0;	// reset timeout
-            if (usbcb.rcvbufp < USB_RCV_BUFSIZE) {
-                if (key == 0x0D || key == 0x0A) { // CR or LF
-					usbEchoBack(key);
-					rcvdata = usbGetChar( 1 );
-					if( rcvdata == USB_RCV_TIMEOUT_CODE ){
-						// timeout, do nothing
-					} else if( (USBMSG_GET_SRC(rcvdata) == USBMSG_SRC_USB) &&
-							   ((USBMSG_GET_CHAR(rcvdata) == 0x0D) || (USBMSG_GET_CHAR(rcvdata) == 0x0A)) ){ // CR or LF
-						key = (char)USBMSG_GET_CHAR(rcvdata);
-						usbEchoBack(key);
-					}else{
-						usbUngetChar( rcvdata ); // unget
+            switch(USBMSG_GET_SRC(rcvdata)){
+				case USBMSG_SRC_USB:	
+					key = (char)USBMSG_GET_CHAR(rcvdata);
+					usbcb.rcvtimeout = 0;	// reset timeout
+					if (usbcb.rcvbufp < USB_RCV_BUFSIZE) {
+						if (key == 0x0D || key == 0x0A) { // CR or LF
+							usbEchoBack(key);
+							rcvdata = usbGetChar( 1 );
+							if( rcvdata == USB_RCV_TIMEOUT_CODE ){
+								// timeout, do nothing
+							} else if( (USBMSG_GET_SRC(rcvdata) == USBMSG_SRC_USB) &&
+									((USBMSG_GET_CHAR(rcvdata) == 0x0D) || (USBMSG_GET_CHAR(rcvdata) == 0x0A)) ){ // CR or LF
+								key = (char)USBMSG_GET_CHAR(rcvdata);
+								usbEchoBack(key);
+							}else{
+								usbUngetChar( rcvdata ); // unget
+							}
+							if (usbcb.rcvbufp) {
+								usbcb.rcvbuf[usbcb.rcvbufp] = '\0';
+								analyze_command(usbcb.rcvbuf);
+							}
+							usbcb.rcvbufp = 0;
+						}else if( key == 0x8 ){ // BS
+							if( usbcb.rcvbufp > 0 ){
+								usbcb.rcvbufp--;
+							}
+							usbEchoBack(key); // echo back;
+						} else {
+							if( !iscntrl(key) || key == 0x09 ){ // cr/lf/bs以外の制御文字は無視 ,HTは許可
+								usbcb.rcvbuf[usbcb.rcvbufp++] = key;
+								usbEchoBack(key); // echo back;
+							}
+						}
 					}
-                    if (usbcb.rcvbufp) {
-                        usbcb.rcvbuf[usbcb.rcvbufp] = '\0';
-                        analyze_command(usbcb.rcvbuf);
-                    }
-                    usbcb.rcvbufp = 0;
-				}else if( key == 0x8 ){ // BS
-					if( usbcb.rcvbufp > 0 ){
-						usbcb.rcvbufp--;
-					}
-					usbEchoBack(key); // echo back;
-                } else {
-					if( !iscntrl(key) || key == 0x09 ){ // cr/lf/bs以外の制御文字は無視 ,HTは許可
-                   	 	usbcb.rcvbuf[usbcb.rcvbufp++] = key;
-						usbEchoBack(key); // echo back;
-					}
-                }
-            }
+					break;
+				case USBMSG_SRC_MONITOR:
+					char c;	
+					c = USBMSG_GET_CHAR(rcvdata);
+					usb_putchar(c);
+					break;
+			}
+
         } else {
 
             if (usbcb.usbtxbufp) {
@@ -222,7 +229,7 @@ static int usb_putchar( char c )
   }else{
     ret = 0;
   }
-  if( usbcb.usbtxbufp >= USB_RCV_BUFSIZE){
+  if( (usbcb.usbtxbufp >= USB_RCV_BUFSIZE) || (c == 0x00)){
     CDC_Transmit_FS((uint8_t*)usbcb.usbtxbuf, usbcb.usbtxbufp);
 	usbcb.usbtxbufp = 0; // buffer full, reset buffer
 	osDelay(2); // wait for buffer flush
@@ -294,6 +301,7 @@ typedef enum{
   KWD_GET,
   KWD_STATUS,
   KWD_POWER,
+  KWD_MON,
   KWD_MAX
 } E_KEYWORD;
 
@@ -313,6 +321,7 @@ const T_KEYWORD t_command[]={
 	{KWD_MODE, "mode", "Set Mode"},
 	{KWD_POWER,"power","Drive Relay ON"},
 	{KWD_STATUS, "status", "Show Status"},
+	{KWD_MON, "mon", "Monitor Mode"},
 	{KWD_MAX, "", ""}
 };
 
@@ -593,11 +602,6 @@ static int set_setup_param( const char *param, const char *value )
 	uint8_t ip[4];
 	float fv;
 
-	if( g_sys.mode == MODE_MEASURE ){
-		usb_puts("Cannot set parameter in MEAS mode");
-		return 0;
-	}
-
 	if( strcmp(param, PSTR_MODBUS_SLAVE_ADDRESS) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
 		g_setup.modbus_slave_address = u8v;
@@ -678,6 +682,8 @@ static int set_setup_param( const char *param, const char *value )
 	}
 
 	g_sys.setup_update = 1;
+	g_sys.setup_update_time = HAL_GetTick();
+
 	snprintf(str, sizeof(str), "set ok: %s", param);
 	usb_puts(str);
 	print_setup_param(param);
@@ -763,6 +769,9 @@ static int analyze_command( char *buf )
 			case KWD_STATUS:
 				cmd_status();
 				break;
+			case KWD_MON:
+				g_sys.monz0_count = 360;
+				break;
 			default:
 				usb_puts("Unknown Command.");
 				usb_puts(buf);
@@ -812,6 +821,11 @@ static int cmd_set(  void )
 		return 0;
 	}
 
+	if( g_sys.mode == MODE_MEASURE ){
+		usb_puts("Cannot set parameter in MEAS mode");
+		return 0;
+	}
+
 	if( set_setup_param(param, value) == 0 ){
 		usb_puts("Set failed. Check parameter name and value format.");
 		show_setup_param_help();
@@ -847,9 +861,30 @@ static int cmd_mode(  void )
 {
 	char str[40];
 	char param[40];
+	char value[40];
+	uint32_t u32;
 	if( usbcb.word_num == 1 ){ // mode command
 		snprintf(str, sizeof(str), "Current Mode: %s", (g_sys.mode == MODE_MEASURE) ? "RUN" : "SETUP");
 		usb_puts(str);
+	}else if (usbcb.word_num == 2){
+		if( !copy_word_to_buf(1, value, sizeof(value)) ){
+			usb_puts("Invalid value token.");
+			return 0;
+		}
+		if( !parse_u32_token(value, &u32) ){
+			return 0;
+		}
+		switch( u32 ){
+		case 0:
+				g_sys.mode_next = MODE_MEASURE;
+				usb_puts("** RUN **");
+				break;
+		case 1:
+				g_sys.mode_next = MODE_SETUP;
+				usb_puts("## SETUP MODE ##");
+
+				break;
+		}
 	}
 	return 0;
 }
