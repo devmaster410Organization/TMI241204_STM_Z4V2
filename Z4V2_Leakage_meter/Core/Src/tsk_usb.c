@@ -34,7 +34,6 @@ static int copy_word_to_buf( uint16_t index, char *out, size_t out_size );
 static bool parse_u32_token( const char *token, uint32_t *out );
 static bool parse_u8_token( const char *token, uint8_t *out );
 static bool parse_u16_token( const char *token, uint16_t *out );
-static bool parse_ipv4_token( const char *token, uint8_t ip[4] );
 static bool is_valid_float_token( const char *token );
 static bool parse_float_token( const char *token, float *out );
 static void show_setup_param_help( void );
@@ -393,45 +392,6 @@ static bool parse_u16_token( const char *token, uint16_t *out )
 	return true;
 }
 
-static bool parse_ipv4_token( const char *token, uint8_t ip[4] )
-{
-	uint32_t value = 0;
-	int part = 0;
-	bool has_digit = false;
-
-	if( (token == NULL) || (*token == '\0') ){
-		return false;
-	}
-
-	for( ; ; token++ ){
-		char c = *token;
-		if( isdigit((int)(unsigned char)c) ){
-			has_digit = true;
-			value = (value * 10U) + (uint32_t)(c - '0');
-			if( value > 255U ){
-				return false;
-			}
-			continue;
-		}
-
-		if( (c == '.') || (c == '\0') ){
-			if( !has_digit || (part >= 4) ){
-				return false;
-			}
-			ip[part++] = (uint8_t)value;
-			value = 0;
-			has_digit = false;
-			if( c == '\0' ){
-				break;
-			}
-			continue;
-		}
-
-		return false;
-	}
-
-	return (part == 4);
-}
 
 static bool is_valid_float_token( const char *token )
 {
@@ -604,78 +564,153 @@ static int set_setup_param( const char *param, const char *value )
 
 	if( strcmp(param, PSTR_MODBUS_SLAVE_ADDRESS) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.modbus_slave_address, setup_max.modbus_slave_address) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.modbus_slave_address = u8v;
 	} else if( strcmp(param, PSTR_RS485_BAUDRATE) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.rs485_baudrate, setup_max.rs485_baudrate) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.rs485_baudrate = u8v;
 	} else if( strcmp(param, PSTR_RS485_STOP_BIT) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.rs485_stop_bit, setup_max.rs485_stop_bit) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.rs485_stop_bit = u8v;
 	} else if( strcmp(param, PSTR_RS485_PARITY) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.rs485_parity, setup_max.rs485_parity) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.rs485_parity = u8v;
 	} else if( strcmp(param, PSTR_RS485_BIT_LENGTH) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.rs485_bit_length, setup_max.rs485_bit_length) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.rs485_bit_length = u8v;
 	} else if( strcmp(param, PSTR_RESPONSE_DELAY_MS) == 0 ){
 		if( !parse_u16_token(value, &u16v) ) return 0;
+		if( check_parameter(u16v, setup_min.response_delay_ms, setup_max.response_delay_ms) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.response_delay_ms = u16v;
 	} else if( strcmp(param, PSTR_LEAKAGE_LOW_CUT) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_low_cut, setup_max.leakage_low_cut) != 0 ){
+			goto parameter_error;
+		}						;
 		g_setup.leakage_low_cut = fv;
 	} else if( strcmp(param, PSTR_AC_PHASE_WIRE) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.ac_phase_wire, setup_max.ac_phase_wire) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.ac_phase_wire = u8v;
 	} else if( strcmp(param, PSTR_CT_TYPE1) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.ct_type[0], setup_max.ct_type[0]) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.ct_type[0] = u8v;
 	} else if( strcmp(param, PSTR_CT_TYPE2) == 0 ){
-		if( !parse_u8_token(value, &u8v) ) return 0;
+		if	( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.ct_type[1], setup_max.ct_type[1]) != 0 ){
+			goto parameter_error;
+		};				
 		g_setup.ct_type[1] = u8v;
 	} else if( strcmp(param, PSTR_CT_TYPE3) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.ct_type[2], setup_max.ct_type[2]) != 0 ){
+			goto parameter_error;
+		};	
 		g_setup.ct_type[2] = u8v;
 	} else if( strcmp(param, PSTR_CT_TYPE4) == 0 ){
 		if( !parse_u8_token(value, &u8v) ) return 0;
+		if( check_parameter(u8v, setup_min.ct_type[3], setup_max.ct_type[3]) != 0 ){
+			goto parameter_error;
+		};	
 		g_setup.ct_type[3] = u8v;
 	} else if( strcmp(param, PSTR_AVARAGE_COUNT) == 0 ){
 		if( !parse_u16_token(value, &u16v) ) return 0;
+		if( check_parameter(u16v, setup_min.avarage_count, setup_max.avarage_count) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.avarage_count = u16v;
 	} else if( strcmp(param, PSTR_VOLT_CALIB1_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.volt_calib[0].gain, setup_max.volt_calib[0].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.volt_calib[0].gain = fv;
 	} else if( strcmp(param, PSTR_VOLT_CALIB1_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.volt_calib[0].offset, setup_max.volt_calib[0].offset) != 0 ){
+			goto parameter_error;
+		};	
 		g_setup.volt_calib[0].offset = fv;
 	} else if( strcmp(param, PSTR_VOLT_CALIB2_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.volt_calib[1].gain, setup_max.volt_calib[1].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.volt_calib[1].gain = fv;
 	} else if( strcmp(param, PSTR_VOLT_CALIB2_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.volt_calib[1].offset, setup_max.volt_calib[1].offset) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.volt_calib[1].offset = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[0].gain, setup_max.leakage_calib[0].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[0].gain = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB1_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[0].offset, setup_max.leakage_calib[0].offset) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[0].offset = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[1].gain, setup_max.leakage_calib[1].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[1].gain = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB2_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[1].offset, setup_max.leakage_calib[1].offset) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[1].offset = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[2].gain, setup_max.leakage_calib[2].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[2].gain = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB3_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[2].offset, setup_max.leakage_calib[2].offset) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[2].offset = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_GAIN) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[3].gain, setup_max.leakage_calib[3].gain) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[3].gain = fv;
 	} else if( strcmp(param, PSTR_LEAKAGE_CALIB4_OFFSET) == 0 ){
 		if( !parse_float_token(value, &fv) ) return 0;
+		if( check_parameter(fv, setup_min.leakage_calib[3].offset, setup_max.leakage_calib[3].offset) != 0 ){
+			goto parameter_error;
+		};
 		g_setup.leakage_calib[3].offset = fv;
 	} else {
 		return 0;
@@ -688,6 +723,10 @@ static int set_setup_param( const char *param, const char *value )
 	usb_puts(str);
 	print_setup_param(param);
 	return 1;
+parameter_error:
+	snprintf(str, sizeof(str), "Invalid value for %s: %s", param, value);
+	usb_puts(str);
+	return 0;
 }
 
 

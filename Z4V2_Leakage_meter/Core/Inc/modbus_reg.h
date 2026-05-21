@@ -368,6 +368,6 @@
 
 int MODBUS_set_reg(uint16_t add, int16_t data) ;
 int MODBUS_get_reg(uint16_t add, int16_t *val) ;
-
+int check_parameter(uint32_t value, uint32_t min, uint32_t max);
 
 #endif /* INC_MODBUS_REG_H_ */
