@@ -27,8 +27,10 @@ void put_adc_all_queue( void );
 
 float Calc_GetAdcVddaScale( void );
 
-#define K_OTG_LA21 4.059207897e-4
-#define K_MZ1H 2.690710247E-4
+#define K_OTG_LA21 2.97077378E-4
+#define K_MZ1H 3.056918826E-4
+#define K_OTG_LA21x10 1.350780084E-5
+#define K_MZ1Hx10 2.690710247E-4
 
 
 float set_K( uint16_t ct_type )
@@ -37,8 +39,15 @@ float set_K( uint16_t ct_type )
     case PRM_LEAKAGE_CT_MZ1H: //30mA
       return K_MZ1H;
     case PRM_LEAKAGE_CT_OTG_LA21: // 高精度漏電CT1
+      return K_OTG_LA21;
+    case PRM_LEAKAGE_CT_MZ1Hx10: //30mA
+      return K_MZ1Hx10;
+    case PRM_LEAKAGE_CT_OTG_LA21x10: // 高精度漏電CT1
+    return K_OTG_LA21x10 ;
     default:
     return K_OTG_LA21 ;
+
+
   }
 }
 
@@ -47,6 +56,14 @@ float set_K( uint16_t ct_type )
 /// @param  
 void init_calc( void )
 {
+// debug debug  
+  g_setup.ct_type[0] = PRM_LEAKAGE_CT_OTG_LA21x10;
+  g_setup.ct_type[1] = PRM_LEAKAGE_CT_OTG_LA21;
+  g_setup.ct_type[2] = PRM_LEAKAGE_CT_MZ1H;
+  g_setup.ct_type[3] = PRM_LEAKAGE_CT_MZ1H;
+// debug debug 
+
+
   sampling_t.k_ma[0] = set_K( g_setup.ct_type[0]);
   sampling_t.k_ma[1] = set_K( g_setup.ct_type[1]);
   sampling_t.k_ma[2] = set_K( g_setup.ct_type[2]);

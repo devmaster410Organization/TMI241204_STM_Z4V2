@@ -178,6 +178,8 @@
 #define REG_PRM_LEAKAGE_CT8_TYPE    0x0C0E  // 漏電CT種別 (0:5mA, 1:30mA, 2:100mA, 3:300mA, 4:500mA, 5:1000mA)
 #define PRM_LEAKAGE_CT_OTG_LA21     0x0000  // 高精度漏電CT1のビットマスク
 #define PRM_LEAKAGE_CT_MZ1H    0x0001  // 
+#define PRM_LEAKAGE_CT_OTG_LA21x10     0x0002  // 高精度漏電CT1のビットマスク
+#define PRM_LEAKAGE_CT_MZ1Hx10    0x0003  // 
 
 
 // --- ローカット設定 ---

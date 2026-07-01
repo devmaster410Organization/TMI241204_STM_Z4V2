@@ -207,7 +207,7 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
         if( check_parameter( tmp, setup_min.ct_type[2], setup_max.ct_type[2] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.ct_type[3] = tmp ;
+          g_setup.ct_type[2] = tmp ;
           setup_update();
         }
       }else{
@@ -229,7 +229,7 @@ int MODBUS_set_reg(uint16_t add, int16_t data)
         if( check_parameter( tmp, setup_min.ct_type[3], setup_max.ct_type[3] ) != 0 ){
           ret = EXCEPTION_CODE_UNACCEPTABLE_DATA; // 不正な値
         }else{
-          g_setup.ct_type[2] = tmp ;
+          g_setup.ct_type[3] = tmp ;
           setup_update();
         }
       }else{

@@ -153,6 +153,15 @@ void PushVoltageStat( float *volt )
     endoffunc:
 }   
 
+//#define RANGE_CHANGE_LEAK1_UPPER 20.0f
+//#define RANGE_CHANGE_LEAK1_LOWER 10.0f
+
+//#define RANGE_CHANGE_LEAK1_UPPER 2000.0f
+//#define RANGE_CHANGE_LEAK1_LOWER 1000.0f
+#define RANGE_CHANGE_LEAK1_UPPER 0000.0f
+#define RANGE_CHANGE_LEAK1_LOWER 0000.0f
+
+
 /// @brief 
 /// @param no 
 /// @param leak 
@@ -177,14 +186,14 @@ void PushLeakageStat( uint16_t no, float leak )
         }
 
         if( no == 0 ){
-            if( f < 10.0f  ){
+            if( f < RANGE_CHANGE_LEAK1_LOWER  ){
                 if( calc_stat_t.calc_leak1_range == 0 ){
                     calc_stat_t.calc_leak1_range = 1;
                     set_range_leak1(calc_stat_t.calc_leak1_range);  
                     calc_stat_t.leakage_cancel_counter[no] = 60;
                     goto endoffunc; //値の更新はしない
                 }
-            }else if( f > 20.0f ){
+            }else if( f > RANGE_CHANGE_LEAK1_UPPER ){
                 if( calc_stat_t.calc_leak1_range == 1 ){
                     calc_stat_t.calc_leak1_range = 0;
                     set_range_leak1(calc_stat_t.calc_leak1_range);  
