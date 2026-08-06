@@ -181,36 +181,13 @@ void PushLeakageStat( uint16_t no, float leak )
     if( rslt )
     {
         f = fans;
+/*
         if( f <= g_setup.leakage_low_cut){ // low_cut以下は0とみなす
             f = 0.0f;
         }
+*/
 
-        if( no == 0 ){
-            if( f < RANGE_CHANGE_LEAK1_LOWER  ){
-                if( calc_stat_t.calc_leak1_range == 0 ){
-                    calc_stat_t.calc_leak1_range = 1;
-                    set_range_leak1(calc_stat_t.calc_leak1_range);  
-                    calc_stat_t.leakage_cancel_counter[no] = 60;
-                    goto endoffunc; //値の更新はしない
-                }
-            }else if( f > RANGE_CHANGE_LEAK1_UPPER ){
-                if( calc_stat_t.calc_leak1_range == 1 ){
-                    calc_stat_t.calc_leak1_range = 0;
-                    set_range_leak1(calc_stat_t.calc_leak1_range);  
-                    calc_stat_t.leakage_cancel_counter[no] = 60;
-                    goto endoffunc; //値の更新はしない
-                }
-            }
-            if( calc_stat_t.calc_leak1_range == 0 ){
-                g = 2.0f; // 漏電レンジ0のときは、実際の値は2倍
-            }else{
-                g = 1.0f;
-            }
-        }else{
-            g = 1.0f;
-        }
-
-        calc_stat_t.leak_inst[no] = f * g;
+        calc_stat_t.leak_inst[no] = f;
 
         if(f > calc_stat_t.leak_max[no]){
             calc_stat_t.leak_max[no] = f;

@@ -27,10 +27,11 @@ void put_adc_all_queue( void );
 
 float Calc_GetAdcVddaScale( void );
 
-#define K_OTG_LA21 2.97077378E-4
+#define K_OTG_LA21 3.9E-4
 #define K_MZ1H 3.056918826E-4
-#define K_OTG_LA21x10 1.350780084E-5
+#define K_OTG_LA21x10 (3.5586E-5)
 #define K_MZ1Hx10 2.690710247E-4
+
 
 
 float set_K( uint16_t ct_type )
