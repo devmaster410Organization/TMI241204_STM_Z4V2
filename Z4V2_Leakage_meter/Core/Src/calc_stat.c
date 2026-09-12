@@ -85,7 +85,7 @@ int average_volt(uint16_t no,float volt, float *fans)
     int rslt = 0;
     calc_stat_t.volt_total[no] += volt;
     calc_stat_t.volt_total_count[no]++;
- PORT_TGL(TP8);
+ //PORT_TGL(TP8);
     if( calc_stat_t.volt_total_count[no] >= calc_stat_t.avarage_count ){
         *fans = calc_stat_t.volt_total[no] / (float)calc_stat_t.volt_total_count[no];
         calc_stat_t.volt_total[no] = 0.0f;

@@ -27,9 +27,9 @@ void put_adc_all_queue( void );
 
 float Calc_GetAdcVddaScale( void );
 
-#define K_OTG_LA21 3.9E-4
+#define K_OTG_LA21 4.00E-4
 #define K_MZ1H 3.056918826E-4
-#define K_OTG_LA21x10 (3.5586E-5)
+#define K_OTG_LA21x10 (4.00-5)
 #define K_MZ1Hx10 2.690710247E-4
 
 
@@ -58,10 +58,10 @@ float set_K( uint16_t ct_type )
 void init_calc( void )
 {
 // debug debug  
-  g_setup.ct_type[0] = PRM_LEAKAGE_CT_OTG_LA21x10;
-  g_setup.ct_type[1] = PRM_LEAKAGE_CT_OTG_LA21;
-  g_setup.ct_type[2] = PRM_LEAKAGE_CT_MZ1H;
-  g_setup.ct_type[3] = PRM_LEAKAGE_CT_MZ1H;
+//  g_setup.ct_type[0] = PRM_LEAKAGE_CT_OTG_LA21x10;
+//  g_setup.ct_type[1] = PRM_LEAKAGE_CT_OTG_LA21;
+//  g_setup.ct_type[2] = PRM_LEAKAGE_CT_MZ1H;
+//  g_setup.ct_type[3] = PRM_LEAKAGE_CT_MZ1H;
 // debug debug 
 
 
@@ -364,6 +364,7 @@ uint16_t ccr_buf[10];
 uint16_t ccr_logp = 0;
 uint16_t ccr_log[200];
 
+uint16_t ccr_value_last[10] = {0};
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   GPIO_PinState pin_state;
@@ -373,18 +374,26 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   {
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {//VPH1
       pin_state = PORT_READ( VPH1 );
+      if(pin_state == GPIO_PIN_SET)
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      Phase_push_edge( NUM_VPH1, ccr_value, pin_state );
-      uint32_t rslt = Get_cycle_time( NUM_VPH1 );
-      if( rslt != 0xFFFFFFFF ){
-        sampling_t.v0_cycle_time = (uint16_t)rslt;
-        sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
+      if( (uint16_t)(ccr_value - ccr_value_last[NUM_VPH1] ) > 100){
+
+        Phase_push_edge( NUM_VPH1, ccr_value, pin_state );
+        uint32_t rslt = Get_cycle_time( NUM_VPH1 );
+        if( rslt != 0xFFFFFFFF ){
+          sampling_t.v0_cycle_time = (uint16_t)rslt;
+          sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
+        }
       }
-//PORT_TGL(TP8);
+      ccr_value_last[NUM_VPH1] = ccr_value;
+  PORT_TGL(TP8);
     }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1
       pin_state = PORT_READ( LPH1 );
     	ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      Phase_push_edge( NUM_LPH1, ccr_value, pin_state );
+      if( (ccr_value -ccr_value_last[NUM_LPH1] ) > 100){
+        Phase_push_edge( NUM_LPH1, ccr_value, pin_state );
+      }
+      ccr_value_last[NUM_LPH1] = ccr_value;
     }
   }
   else if (htim->Instance == TIM4)
@@ -392,15 +401,24 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {  //LPH2
       pin_state = PORT_READ( LPH2 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      Phase_push_edge( NUM_LPH2, ccr_value, pin_state );
+      if( (ccr_value -ccr_value_last[NUM_LPH2] ) > 100){
+        Phase_push_edge( NUM_LPH2, ccr_value, pin_state );
+      }
+      ccr_value_last[NUM_LPH2] = ccr_value;
     }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {  //LPH3
       pin_state = PORT_READ( LPH3 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      Phase_push_edge( NUM_LPH3, ccr_value, pin_state );     
+      if( (ccr_value -ccr_value_last[NUM_LPH3] ) > 100){
+        Phase_push_edge( NUM_LPH3, ccr_value, pin_state );
+      }
+      ccr_value_last[NUM_LPH3] = ccr_value;
     }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {  //LPH4                                                                                                                                    
       pin_state = PORT_READ( LPH4 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
-      Phase_push_edge( NUM_LPH4, ccr_value, pin_state );
+      if( (ccr_value -ccr_value_last[NUM_LPH4] ) > 100){
+        Phase_push_edge( NUM_LPH4, ccr_value, pin_state );
+      }
+      ccr_value_last[NUM_LPH4] = ccr_value;
     }
  }
 }

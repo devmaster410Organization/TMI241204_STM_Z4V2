@@ -100,7 +100,7 @@ static void uart_init(void) {
 // MOD BUS errコード
 #define EXCEPTION_CODE_OK 0x00
 #define	EXCEPTION_CODE_ILLIGAL_FUNCTION 0x01
-#define EXCEPTION_CODE_ILLIGAL_ADDRESS 0x02
+#define EXCEPTION_CODE_ILLEGAL_ADDRESS 0x02
 #define EXCEPTION_CODE_UNACCEPTABLE_DATA 0x03
 #define ERRCODE_04_DOSA_ERR 0x04
 
@@ -542,7 +542,7 @@ static void sub_func_write_n(uint8_t rcv[]) {
 	tModBus.bytenum = rcv[ptr];
 	ptr++;
 	if (tModBus.num * 2 != tModBus.bytenum) {
-//			make_err_code(EXCEPTION_CODE_ILLIGAL_ADDRESS);
+//			make_err_code(EXCEPTION_CODE_ILLEGAL_ADDRESS);
 		make_err_code(EXCEPTION_CODE_UNACCEPTABLE_DATA, rcv);
 		goto err;
 	}
@@ -566,25 +566,27 @@ static void sub_func_write_1(uint8_t rcv[]) {
 	ptr++;	//slave address
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//function code
-	tModBus.slave_add = get_uword_be(&rcv[ptr]);
+	tModBus.add = get_uword_be(&rcv[ptr]);
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//start address u
 	tModBus.txbuf[ptr] = rcv[ptr];
 	ptr++;	//start address l
 
-	tModBus.data[0] = get_uword_be(&rcv[ptr]);
-	MODBUS_set_reg(tModBus.slave_add, tModBus.data[0]);
-	rslt = MODBUS_get_reg(tModBus.slave_add, &val);
+	val = get_uword_be(&rcv[ptr]);
+	rslt = MODBUS_set_reg(tModBus.add, val);
 	if (rslt == EXCEPTION_CODE_OK) {
 		put_uword_be(&tModBus.txbuf[ptr], val);
 		ptr += 2;
 		tModBus.txcnt = ptr;
 	} else {	//エラー時　(アドレスが違うなど)
-		make_err_code(EXCEPTION_CODE_ILLIGAL_ADDRESS, rcv);
+		make_err_code(EXCEPTION_CODE_ILLEGAL_ADDRESS, rcv);
 	}
 
 }
 
+
+/// @brief Handle Modbus echo back function
+/// @param rcv Received Modbus request packet
 static void sub_func_echoback(uint8_t rcv[]) {
 	uint16_t add, val;
 	uint16_t header_sz;

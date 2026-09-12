@@ -1,5 +1,5 @@
 ../Core/Src/tsk_modbus.c:460:13:make_err_code	1
-../Core/Src/tsk_modbus.c:617:13:sub_error_code	2
+../Core/Src/tsk_modbus.c:619:13:sub_error_code	2
 ../Core/Src/tsk_modbus.c:60:13:uart_init	1
 ../Core/Src/tsk_modbus.c:152:13:MX_USART3_UART_Init_MODBUS	17
 ../Core/Src/tsk_modbus.c:442:12:crc_check	2

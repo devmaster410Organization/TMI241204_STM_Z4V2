@@ -34,7 +34,7 @@ static T_AC tAc;
 
 
 //電圧の換算定数
-#define CONST_A (0.00007503242452f)
+#define CONST_A (0.00007503242452f/0.2668607472f)
 #define CONST_B	0
 #define BASE_NOISE 0 //85518 
 #define	CONST_ROOT2	1.41421356f
