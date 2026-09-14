@@ -66,6 +66,7 @@ extern UART_HandleTypeDef huart3;
 ///
 
 void tsk_calc( void );
+void tsk_calc_timer_overflow_callback( TIM_HandleTypeDef *htim );
 void tsk_ui( void );
 void tsk_usb( void );
 void tsk_modbus_slave( void );

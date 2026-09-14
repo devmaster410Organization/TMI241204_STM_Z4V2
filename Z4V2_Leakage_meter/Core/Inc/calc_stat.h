@@ -34,7 +34,8 @@ typedef struct{
   float leak_max[LEAK_CH_NUM];
   float leak_min[LEAK_CH_NUM];
 
-  
+  uint32_t tim2_ovf_count;
+  uint32_t tim4_ovf_count;
 
 }st_calc_stat;
 

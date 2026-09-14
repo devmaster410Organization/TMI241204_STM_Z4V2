@@ -75,6 +75,9 @@ void init_calc( void )
 	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN12_CHANNEL], FS_HZ,sampling_t.k_ma[2] ,ALPHA, 0.10f, 0.995f, 1.30f );
 	Leak100ms_5060_Init( &sampling_t.leak100ms_t[QSEL_IN13_CHANNEL], FS_HZ,sampling_t.k_ma[3] ,ALPHA, 0.10f, 0.995f, 1.30f );
 
+  calc_stat_t.tim2_ovf_count = 0;
+  calc_stat_t.tim4_ovf_count = 0;
+
 }
 
 
@@ -227,8 +230,8 @@ static void Start_Capture_Synced(void)
 
 	// --- 割り込み禁止で同時スタート（Slave → Master順） ---
 	__disable_irq();
-	HAL_TIM_Base_Start(&htim4);  // Slave start
-	HAL_TIM_Base_Start(&htim2);  // Slave start
+  HAL_TIM_Base_Start_IT(&htim4);  // Slave start
+  HAL_TIM_Base_Start_IT(&htim2);  // Slave start
  	HAL_TIM_Base_Start(&htim3);  // マスタータイマー
 	__enable_irq();
 
@@ -241,6 +244,16 @@ static void Start_Capture_Synced(void)
 	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_2);
 	HAL_TIM_IC_Start_IT(&htim4, TIM_CHANNEL_4);
 
+}
+
+
+void tsk_calc_timer_overflow_callback( TIM_HandleTypeDef *htim )
+{
+  if( htim->Instance == TIM2 ){
+    calc_stat_t.tim2_ovf_count++;
+  }else if( htim->Instance == TIM4 ){
+    calc_stat_t.tim4_ovf_count++;
+  }
 }
  
 
@@ -365,6 +378,12 @@ uint16_t ccr_logp = 0;
 uint16_t ccr_log[200];
 
 uint16_t ccr_value_last[10] = {0};
+
+uint16_t ccr_ringp = 0;
+uint16_t ccr_ring[10];
+uint16_t state_ring[10];
+
+
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   GPIO_PinState pin_state;
@@ -372,12 +391,16 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 
   if (htim->Instance == TIM2)
   {
-    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {//VPH1
-      pin_state = PORT_READ( VPH1 );
-      if(pin_state == GPIO_PIN_SET)
+    if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {//VPH1 (1uSeccounttimer)
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
+      pin_state = PORT_READ( VPH1 );
+      ccr_ring[ccr_ringp] = ccr_value;
+      state_ring[ccr_ringp] = pin_state;
+      ccr_ringp++;
+      if(ccr_ringp >= 10){
+        ccr_ringp = 0;
+      }
       if( (uint16_t)(ccr_value - ccr_value_last[NUM_VPH1] ) > 100){
-
         Phase_push_edge( NUM_VPH1, ccr_value, pin_state );
         uint32_t rslt = Get_cycle_time( NUM_VPH1 );
         if( rslt != 0xFFFFFFFF ){
@@ -387,10 +410,10 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
       }
       ccr_value_last[NUM_VPH1] = ccr_value;
   PORT_TGL(TP8);
-    }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1
+    }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1 (1uSeccounttimer)
       pin_state = PORT_READ( LPH1 );
     	ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      if( (ccr_value -ccr_value_last[NUM_LPH1] ) > 100){
+      if( (uint16_t)(ccr_value -ccr_value_last[NUM_LPH1] ) > 100){
         Phase_push_edge( NUM_LPH1, ccr_value, pin_state );
       }
       ccr_value_last[NUM_LPH1] = ccr_value;
@@ -401,21 +424,21 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {  //LPH2
       pin_state = PORT_READ( LPH2 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      if( (ccr_value -ccr_value_last[NUM_LPH2] ) > 100){
+      if( (uint16_t)(ccr_value -ccr_value_last[NUM_LPH2] ) > 100){
         Phase_push_edge( NUM_LPH2, ccr_value, pin_state );
       }
       ccr_value_last[NUM_LPH2] = ccr_value;
     }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {  //LPH3
       pin_state = PORT_READ( LPH3 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
-      if( (ccr_value -ccr_value_last[NUM_LPH3] ) > 100){
+      if( (uint16_t)(ccr_value -ccr_value_last[NUM_LPH3] ) > 100){
         Phase_push_edge( NUM_LPH3, ccr_value, pin_state );
       }
       ccr_value_last[NUM_LPH3] = ccr_value;
     }else if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_4) {  //LPH4                                                                                                                                    
       pin_state = PORT_READ( LPH4 );
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_4);
-      if( (ccr_value -ccr_value_last[NUM_LPH4] ) > 100){
+      if( (uint16_t)(ccr_value -ccr_value_last[NUM_LPH4] ) > 100){
         Phase_push_edge( NUM_LPH4, ccr_value, pin_state );
       }
       ccr_value_last[NUM_LPH4] = ccr_value;

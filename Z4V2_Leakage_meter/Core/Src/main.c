@@ -1160,6 +1160,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     KeyScan();
   }
+  else if (htim->Instance == TIM2 || htim->Instance == TIM4)
+  {
+    tsk_calc_timer_overflow_callback(htim);
+  }
   /* USER CODE END Callback 1 */
 }
 
