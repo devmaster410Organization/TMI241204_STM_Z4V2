@@ -173,9 +173,6 @@ void tsk_calc( void )
               break;
             }
           }
-
-
-
         }
 				if(rslt == 1){
           PushLeakageStat( 0, f );
@@ -259,14 +256,7 @@ void tsk_calc_timer_overflow_callback( TIM_HandleTypeDef *htim )
 
 
 
-#define NUM_VPH1 0
-#define NUM_LPH1 1 
-#define NUM_LPH2 2 
-#define NUM_LPH3 3 
-#define NUM_LPH4 4
-#define PHASE_NUM_MAX 5
-#define PHASE_REC_BUF_SIZE 10
-#define GPIO_UNDEFINED 0x0002
+
 typedef struct {
   uint16_t ccr;
   uint16_t state; //  GPIO_PIN_RESET = 0U,  GPIO_PIN_SET  , GPIO_UNDEFINED  
@@ -275,6 +265,7 @@ typedef struct {
 
 typedef struct{
   uint16_t wp;
+  uint16_t counter;// タイマオーバーフロー回数
   phase_rec_t rec[PHASE_REC_BUF_SIZE];
 }phase_t;
 
@@ -294,22 +285,23 @@ void Pase_init( void )
   }
 }
 
+
 /// @brief 
 /// @param no 
 /// @param ccr 
+/// @param counter 
 /// @param state 
 void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state )
 {
   phase_t *pphase = &phase_[no];
   pphase->rec[pphase->wp].ccr = ccr;
   pphase->rec[pphase->wp].state = state;
+  pphase->counter++;
   pphase->wp++;
   if( pphase->wp >= PHASE_REC_BUF_SIZE ) pphase->wp = 0;
 }
 
 
-uint16_t idx1_log[PHASE_REC_BUF_SIZE];
-uint16_t idx2_log[PHASE_REC_BUF_SIZE];
 
 /// @brief 
 /// @param no 
@@ -319,24 +311,15 @@ uint32_t Get_cycle_time( uint16_t no )
   phase_t *pphase = &phase_[no];
   uint16_t wpcnt =0;
   uint16_t cycle_time;
-
-  uint16_t idx1p = 0;
-  uint16_t idx2p = 0;
-  memset(idx1_log, 0xFF, sizeof(idx1_log));
-  memset(idx2_log, 0xFF, sizeof(idx2_log));
-
+  int idx2 = 0;
 
   int idx1 = (pphase->wp + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
 
-  idx1_log[idx1p++] = idx1;
-
-  int idx2 = -1;
 
   //seartch idx1 (last rising  edge)
   while(wpcnt != PHASE_REC_BUF_SIZE){
     if( pphase->rec[idx1].state ==  GPIO_PIN_SET ){
       idx2 = (idx1 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
-  idx2_log[idx2p++] = idx2;
 
       wpcnt++;
       break;
@@ -344,9 +327,6 @@ uint32_t Get_cycle_time( uint16_t no )
       return 0xFFFFFFFF;//undefined
     }
     idx1 = (idx1 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
-
-  idx1_log[idx1p++] = idx1;
-
 
     wpcnt++;
   }
@@ -357,7 +337,6 @@ uint32_t Get_cycle_time( uint16_t no )
       return 0xFFFFFFFF;//undefined
     }
     idx2 = (idx2 + PHASE_REC_BUF_SIZE - 1) % PHASE_REC_BUF_SIZE;
-  idx2_log[idx2p++] = idx2;
     wpcnt++;
   }
   if(wpcnt <= PHASE_REC_BUF_SIZE ){
@@ -372,18 +351,50 @@ uint32_t Get_cycle_time( uint16_t no )
 
 ///
 
-uint16_t ccr_buf[10];
-
-uint16_t ccr_logp = 0;
-uint16_t ccr_log[200];
 
 uint16_t ccr_value_last[10] = {0};
+uint16_t diff_ccr_value[10];
 
-uint16_t ccr_ringp = 0;
-uint16_t ccr_ring[10];
-uint16_t state_ring[10];
+#define V_I_INPUT_CAPTURE_OFFSET_US 580
+void get_all_phase(void)
+{
+  uint16_t ccr_deff;
+  uint32_t cycle_usec;
+  phase_t *pphase_v = &phase_[NUM_VPH1];
+
+  if(sampling_t.v0_cycle_time>0){
+    for(int i=NUM_LPH1; i<=NUM_LPH4; i++)
+    {
+      phase_t *pphase_l = &phase_[i];
+      // ここで各LPHの処理を行う
+    
+      if(pphase_l->counter > 0){
+        diff_ccr_value[i] = pphase_v->rec[pphase_v->wp].ccr - pphase_l->rec[pphase_l->wp].ccr;
+        if(diff_ccr_value[i] < V_I_INPUT_CAPTURE_OFFSET_US) diff_ccr_value[i] =0;
+        else diff_ccr_value[i] -= V_I_INPUT_CAPTURE_OFFSET_US;
+        if( diff_ccr_value[i] <sampling_t.v0_cycle_time ){
+          float ragian = ((float)diff_ccr_value[i] / (float)sampling_t.v0_cycle_time )*2.0f*M_PI;
+          sampling_t.leak100ms_t[i+1].diff_ccr_value = diff_ccr_value[i];
+          sampling_t.leak100ms_t[i+1].rag = ragian;
+          sampling_t.leak100ms_t[i+1].i0r = GetLInstValue(i-NUM_LPH1)*cos(ragian);
+        }else{
+          sampling_t.leak100ms_t[i+1].diff_ccr_value = -1;  // 信号検知無し
+          sampling_t.leak100ms_t[i+1].rag = 0;
+          sampling_t.leak100ms_t[i+1].i0r = GetLInstValue(i-NUM_LPH1);
+        }
+      }else{
+          sampling_t.leak100ms_t[i+1].diff_ccr_value = -1;  // 信号検知無し
+          sampling_t.leak100ms_t[i+1].rag = 0;
+          sampling_t.leak100ms_t[i+1].i0r = GetLInstValue(i-NUM_LPH1);
+      }
+      pphase_l->counter  = 0;
+    }
+  }
+}
 
 
+/// @brief インプットキャプチャコールバック
+/// @param htim TIM2/TIM4 handler
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
   GPIO_PinState pin_state;
@@ -393,13 +404,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
   {
     if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {//VPH1 (1uSeccounttimer)
       ccr_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1);
-      pin_state = PORT_READ( VPH1 );
-      ccr_ring[ccr_ringp] = ccr_value;
-      state_ring[ccr_ringp] = pin_state;
-      ccr_ringp++;
-      if(ccr_ringp >= 10){
-        ccr_ringp = 0;
-      }
+      pin_state = PORT_READ( VPH1 );// 立ち上がりエッジなので不要ではあるが、将来both edge対応する場合に備えて取得しておく
+
+
       if( (uint16_t)(ccr_value - ccr_value_last[NUM_VPH1] ) > 100){
         Phase_push_edge( NUM_VPH1, ccr_value, pin_state );
         uint32_t rslt = Get_cycle_time( NUM_VPH1 );
@@ -408,6 +415,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
           sampling_t.V0Hz = sampling_t.v0_cycle_time == 0 ? 0.0f : 1000000.0f / (float)sampling_t.v0_cycle_time;
         }
       }
+      get_all_phase();
       ccr_value_last[NUM_VPH1] = ccr_value;
   PORT_TGL(TP8);
     }else  if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) { //LPH1 (1uSeccounttimer)

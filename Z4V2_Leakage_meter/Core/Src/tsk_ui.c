@@ -14,6 +14,7 @@ typedef enum{
   UI_SHOW_VALUE,
   UI_SHOW_ADC,
   UI_SHOW_PHASE,
+  UI_SHOW_Z0,
   UI_SHOW_SYSTEM
 }UI_Disp_enum;
 
@@ -34,6 +35,7 @@ UI_Disp_enum ui_show_main( void );
 UI_Disp_enum ui_show_adc( void );
 UI_Disp_enum ui_show_value( void );
 UI_Disp_enum ui_show_phase( void );
+UI_Disp_enum ui_show_z0( void );
 UI_Disp_enum ui_show_system( void );
 
 void setup_check( vodid );
@@ -69,8 +71,12 @@ void tsk_ui( void )
         break;
       case UI_SHOW_ADC:
         ui_t.disp = ui_show_adc();
-        ui_t.disp = UI_SHOW_SYSTEM;
+        ui_t.disp = UI_SHOW_Z0;
         break;
+      case UI_SHOW_Z0:
+          ui_t.disp = ui_show_z0();
+        ui_t.disp = UI_SHOW_SYSTEM;
+        break;    
       case UI_SHOW_SYSTEM:
           ui_t.disp = ui_show_system();
         ui_t.disp = UI_SHOW_MAIN;
@@ -243,6 +249,39 @@ UI_Disp_enum ui_show_adc( void )
     ChlcdPrint( 10, 2, lcd_str );
     sprintf( (char*)lcd_str, "ADC%u:%4u", 6, adc_values[5] );
     ChlcdPrint( 10, 3, lcd_str );
+
+
+    osDelay( 99 );
+    uint8_t keystat = KEY_pget();
+    if( keystat == (K_MODE|K_ON) ){
+      done = true;
+    }
+    setup_check();
+
+  }
+  return uie;
+}
+
+
+/// @brief display ADC values
+/// @param  void
+/// @return next UI display state
+UI_Disp_enum ui_show_z0( void )
+{
+  bool done = false;
+  uint16_t adc_values[ADC_NUM];
+  UI_Disp_enum uie = UI_SHOW_SYSTEM ;
+  ChlcdCls();
+  KEY_clr();
+  while( done == false ){
+    for(int i=0;i<4;i++){
+      sprintf((char*)lcd_str,"%3d",(int)(sampling_t.leak100ms_t[i+2].rag*180.0/M_PI));
+      ChlcdPrint( 0, i, lcd_str );
+      sprintf((char*)lcd_str,"%6.2f",GetLInstValue(i));
+      ChlcdPrint( 5, i, lcd_str );
+      sprintf((char*)lcd_str,"%6.2f", sampling_t.leak100ms_t[i+2].i0r);
+      ChlcdPrint( 12, i, lcd_str );
+    }
 
 
     osDelay( 99 );

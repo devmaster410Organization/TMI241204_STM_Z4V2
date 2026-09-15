@@ -128,8 +128,6 @@ extern osMessageQId queue_ADCHandle;
 #define ADC2_CH_NUM 6 // ADCIN1,2,3,4,5,6
 
 
-
-
 typedef struct{
   uint16_t en;
   int16_t buf[FRAME_SAMPLES*(ADC2_CH_NUM)];
@@ -176,7 +174,7 @@ typedef struct {
 
 extern st_sampling_cb sampling_t;
 void Pase_init( void );
-void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state );
+void Phase_push_edge( uint16_t no, uint16_t ccr ,GPIO_PinState state );  
 uint32_t Get_cycle_time( uint16_t no );
 uint16_t GetVCycle( void );
 float GetVFreq( void );

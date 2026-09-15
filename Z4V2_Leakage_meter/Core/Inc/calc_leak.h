@@ -13,12 +13,20 @@
 #define ADC_CYC	(1.0/ADC_HZ)
 
 #define V_ADC_HZ ((int32_t)ADC_HZ/10)
-#define V_ADC_CYC	(1.0/ADC_HZ)
+#define V_ADC_CYC	(1.0/V_ADC_HZ)
 
 
+#define NUM_VPH1 0
+#define NUM_LPH1 1 
+#define NUM_LPH2 2 
+#define NUM_LPH3 3 
+#define NUM_LPH4 4
+#define PHASE_NUM_MAX 5
+#define PHASE_REC_BUF_SIZE 10
+#define GPIO_UNDEFINED 0x0002
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846
+#define M_PI 3.14159265358979323846f
 #endif
 
 typedef struct
@@ -57,6 +65,11 @@ typedef struct
 
   float filt_mA;           // EWMA state
   float last_mA;           // latest output
+
+
+  int16_t diff_ccr_value;
+  float rag;
+  float i0r;
 } Leak100ms_5060;
 
 void Leak100ms_5060_Init(Leak100ms_5060 *st,
