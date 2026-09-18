@@ -269,25 +269,39 @@ UI_Disp_enum ui_show_adc( void )
 UI_Disp_enum ui_show_z0( void )
 {
   bool done = false;
-  uint16_t adc_values[ADC_NUM];
+ 
   UI_Disp_enum uie = UI_SHOW_SYSTEM ;
+  int ch = 0;
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    for(int i=0;i<4;i++){
-      sprintf((char*)lcd_str,"%3d",(int)(sampling_t.leak100ms_t[i+2].rag*180.0/M_PI));
-      ChlcdPrint( 0, i, lcd_str );
-      sprintf((char*)lcd_str,"%6.2f",GetLInstValue(i));
-      ChlcdPrint( 5, i, lcd_str );
-      sprintf((char*)lcd_str,"%6.2f", sampling_t.leak100ms_t[i+2].i0r);
-      ChlcdPrint( 12, i, lcd_str );
-    }
+    sprintf((char*)lcd_str,"CH:%1d: %d",ch+1,sampling_t.leak100ms_t[ch+2].diff_ccr_value_raw);
+    ChlcdPrint( 0, 0, lcd_str );
+    
+    sprintf((char*)lcd_str,"Phase %5.2f degrees ",(sampling_t.leak100ms_t[ch+2].rag*180.0/M_PI));
+    ChlcdPrint( 0, 1, lcd_str );
+    sprintf((char*)lcd_str,"I0  = %6.3f mA ",GetLInstValue(ch));
+    ChlcdPrint( 0, 2, lcd_str );
+    sprintf((char*)lcd_str,"I0r = %6.3f mA ", sampling_t.leak100ms_t[ch+2].i0r);
+    ChlcdPrint( 0, 3, lcd_str );
 
 
     osDelay( 99 );
     uint8_t keystat = KEY_pget();
-    if( keystat == (K_MODE|K_ON) ){
-      done = true;
+    switch( keystat ){
+      case K_MODE|K_ON:
+        done = true;
+        break;
+      case K_UP|K_ON:
+        // Handle the UP key press here
+        ch = (ch + 1) % 4; // Move to the next channel
+        ChlcdCls();
+        break;
+      case K_DOWN|K_ON:
+        // Handle the DOWN key press here
+        ch = (ch + 3) % 4; // Move to the previous channel
+        ChlcdCls();
+        break;
     }
     setup_check();
 

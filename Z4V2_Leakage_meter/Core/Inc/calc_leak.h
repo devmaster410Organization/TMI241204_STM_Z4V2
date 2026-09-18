@@ -68,6 +68,7 @@ typedef struct
 
 
   int16_t diff_ccr_value;
+  int16_t diff_ccr_value_raw; //for debug
   float rag;
   float i0r;
 } Leak100ms_5060;

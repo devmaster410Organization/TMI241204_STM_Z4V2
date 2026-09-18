@@ -27,7 +27,7 @@ void put_adc_all_queue( void );
 
 float Calc_GetAdcVddaScale( void );
 
-#define K_OTG_LA21 4.00E-4
+#define K_OTG_LA21 (4.00E-4/1.037970645)
 #define K_MZ1H 3.056918826E-4
 #define K_OTG_LA21x10 (4.00-5)
 #define K_MZ1Hx10 2.690710247E-4
@@ -352,10 +352,18 @@ uint32_t Get_cycle_time( uint16_t no )
 ///
 
 
+float calc_radian(int32_t diff_usec, float i0_ma) {
+    // 1. 前回の補正式で角度(度)を計算
+    float degree = (0.018f * diff_usec) + (13.64f / i0_ma) - 14.03f;
+    
+    // 2. 度からラジアンへ変換 (度 × π ÷ 180)
+    return degree * M_PI / 180.0f;
+}
+
 uint16_t ccr_value_last[10] = {0};
 uint16_t diff_ccr_value[10];
 
-#define V_I_INPUT_CAPTURE_OFFSET_US 580
+#define V_I_INPUT_CAPTURE_OFFSET_US 750
 void get_all_phase(void)
 {
   uint16_t ccr_deff;
@@ -370,13 +378,14 @@ void get_all_phase(void)
     
       if(pphase_l->counter > 0){
         diff_ccr_value[i] = pphase_v->rec[pphase_v->wp].ccr - pphase_l->rec[pphase_l->wp].ccr;
-        if(diff_ccr_value[i] < V_I_INPUT_CAPTURE_OFFSET_US) diff_ccr_value[i] =0;
-        else diff_ccr_value[i] -= V_I_INPUT_CAPTURE_OFFSET_US;
-        if( diff_ccr_value[i] <sampling_t.v0_cycle_time ){
-          float ragian = ((float)diff_ccr_value[i] / (float)sampling_t.v0_cycle_time )*2.0f*M_PI;
+//        if(diff_ccr_value[i] < V_I_INPUT_CAPTURE_OFFSET_US) diff_ccr_value[i] =0;
+//        else diff_ccr_value[i] -= V_I_INPUT_CAPTURE_OFFSET_US;
+        if( diff_ccr_value[i] <=sampling_t.v0_cycle_time ){
+//          float ragian = ((float)diff_ccr_value[i] / (float)sampling_t.v0_cycle_time )*2.0f*M_PI;
           sampling_t.leak100ms_t[i+1].diff_ccr_value = diff_ccr_value[i];
-          sampling_t.leak100ms_t[i+1].rag = ragian;
-          sampling_t.leak100ms_t[i+1].i0r = GetLInstValue(i-NUM_LPH1)*cos(ragian);
+          sampling_t.leak100ms_t[i+1].diff_ccr_value_raw = pphase_v->rec[pphase_v->wp].ccr - pphase_l->rec[pphase_l->wp].ccr;
+          sampling_t.leak100ms_t[i+1].rag = calc_radian(sampling_t.leak100ms_t[i+1].diff_ccr_value_raw, GetLInstValue(i-NUM_LPH1));
+          sampling_t.leak100ms_t[i+1].i0r = GetLInstValue(i-NUM_LPH1)*cos(sampling_t.leak100ms_t[i+1].rag);
         }else{
           sampling_t.leak100ms_t[i+1].diff_ccr_value = -1;  // 信号検知無し
           sampling_t.leak100ms_t[i+1].rag = 0;
