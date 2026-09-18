@@ -51,6 +51,53 @@ static inline float goertzel_power_60(const Leak100ms_5060 *st)
   return st->s1_60*st->s1_60 + st->s2_60*st->s2_60 - st->coeff60*st->s1_60*st->s2_60;
 }
 
+static inline float clampf(float value, float min_value, float max_value)
+{
+  if (value < min_value) return min_value;
+  if (value > max_value) return max_value;
+  return value;
+}
+
+LeakageData CalculateLeakage(const float *v_inst, const float *i0_inst, int num_samples)
+{
+  LeakageData result = {0.0f, 0.0f, 0.0f};
+
+  if (v_inst == NULL || i0_inst == NULL || num_samples <= 0) {
+    return result;
+  }
+
+  float sum_v2 = 0.0f;
+  float sum_i2 = 0.0f;
+  float sum_vi = 0.0f;
+
+  for (int k = 0; k < num_samples; k++) {
+    const float v = v_inst[k];
+    const float i = i0_inst[k];
+    sum_v2 += v * v;
+    sum_i2 += i * i;
+    sum_vi += v * i;
+  }
+
+  const float v_rms = sqrtf(sum_v2 / (float)num_samples);
+  const float i0_rms = sqrtf(sum_i2 / (float)num_samples);
+  const float power_mean = sum_vi / (float)num_samples;
+
+  const float v_rms_safe = (v_rms > 0.0f) ? v_rms : 1.0f;
+  const float i0r = fabsf(power_mean / v_rms_safe);
+
+  float ratio = 0.0f;
+  if (i0_rms > 1.0e-12f) {
+    ratio = clampf(i0r / i0_rms, -1.0f, 1.0f);
+  }
+  const float theta_rad = acosf(ratio);
+
+  result.i0_rms = i0_rms;
+  result.i0r = i0r;
+  result.phase = theta_rad * 180.0f / (float)M_PI;
+
+  return result;
+}
+
 /* -------- public API -------- */
 
 void Leak100ms_5060_Init(Leak100ms_5060 *st,

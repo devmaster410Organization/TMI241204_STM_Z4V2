@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 #include "stm32g4xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -170,6 +171,15 @@ typedef struct {
   float k_ma[ADC2_CH_NUM];
   uint16_t v0_cycle_time;
   float V0Hz;
+
+  /* DSP-based per-cycle leakage calculation (3600 SPS, 50/60Hz compatible) */
+  float dsp_v_cycle[72];
+  float dsp_i0_cycle[72];
+  uint8_t dsp_cycle_count;
+  uint8_t dsp_cycle_samples;
+  float dsp_i0_rms[ADC2_CH_NUM];
+  float dsp_i0r[ADC2_CH_NUM];
+  float dsp_phase[ADC2_CH_NUM];
 } st_sampling_cb;
 
 extern st_sampling_cb sampling_t;

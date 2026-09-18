@@ -14,7 +14,7 @@ st_sampling_cb sampling_t;
 
 static void put_ad_ring( uint16_t sel, uint16_t adc_value );
 static uint16_t get_ad_ring( uint16_t sel);
-
+static void PushLeakageDspSample(float v_inst, float i0_inst, uint16_t ch_idx);
 
 void tsk_culc( void );
 static void init_sample_buf( void );
@@ -85,6 +85,83 @@ void init_calc( void )
 /// @param  
 volatile uint8_t idxx;
 
+static void PushLeakageDspSample(float v_inst, float i0_inst, uint16_t ch_idx)
+{
+    if (sampling_t.dsp_cycle_samples == 0) {
+        sampling_t.dsp_cycle_samples = (sampling_t.V0Hz > 55.0f && sampling_t.V0Hz < 65.0f) ? 60U : 72U;
+    }
+
+    if (sampling_t.dsp_cycle_count >= sampling_t.dsp_cycle_samples) {
+        sampling_t.dsp_cycle_count = 0;
+    }
+
+    sampling_t.dsp_v_cycle[sampling_t.dsp_cycle_count] = v_inst;
+    sampling_t.dsp_i0_cycle[sampling_t.dsp_cycle_count] = i0_inst;
+    sampling_t.dsp_cycle_count++;
+
+    if (sampling_t.dsp_cycle_count >= sampling_t.dsp_cycle_samples) {
+        LeakageData calc = CalculateLeakage(sampling_t.dsp_v_cycle, sampling_t.dsp_i0_cycle, sampling_t.dsp_cycle_samples);
+
+        sampling_t.dsp_i0_rms[ch_idx] = calc.i0_rms;
+        sampling_t.dsp_i0r[ch_idx] = calc.i0r;
+        sampling_t.dsp_phase[ch_idx] = calc.phase;
+
+        sampling_t.leak100ms_t[(uint8_t)ch_idx].i0r = calc.i0r;
+        sampling_t.leak100ms_t[(uint8_t)ch_idx].rag = calc.phase * (float)M_PI / 180.0f;
+        sampling_t.dsp_cycle_count = 0;
+    }
+}
+
+static void PushLeakageDspSampleThreePhase3Wire(const float *v_rs_cycle,
+                                               const float *v_st_cycle,
+                                               const float *i0_cycle,
+                                               uint16_t ch_idx)
+{
+    if (sampling_t.dsp_cycle_samples == 0) {
+        sampling_t.dsp_cycle_samples = (sampling_t.V0Hz > 55.0f && sampling_t.V0Hz < 65.0f) ? 60U : 72U;
+    }
+
+    if (sampling_t.dsp_cycle_count >= sampling_t.dsp_cycle_samples) {
+        sampling_t.dsp_cycle_count = 0;
+    }
+
+    float v_tr_cycle[72];
+    for (uint8_t k = 0; k < sampling_t.dsp_cycle_samples; k++) {
+        v_tr_cycle[k] = -(v_rs_cycle[k] + v_st_cycle[k]);
+    }
+
+    LeakageData rs = CalculateLeakage(v_rs_cycle, i0_cycle, sampling_t.dsp_cycle_samples);
+    LeakageData st = CalculateLeakage(v_st_cycle, i0_cycle, sampling_t.dsp_cycle_samples);
+    LeakageData tr = CalculateLeakage(v_tr_cycle, i0_cycle, sampling_t.dsp_cycle_samples);
+
+    LeakageData sel = rs;
+    float v_rs_rms = 0.0f;
+    float v_st_rms = 0.0f;
+    float v_tr_rms = 0.0f;
+    for (uint8_t k = 0; k < sampling_t.dsp_cycle_samples; k++) {
+        v_rs_rms += v_rs_cycle[k] * v_rs_cycle[k];
+        v_st_rms += v_st_cycle[k] * v_st_cycle[k];
+        v_tr_rms += v_tr_cycle[k] * v_tr_cycle[k];
+    }
+    v_rs_rms = sqrtf(v_rs_rms / (float)sampling_t.dsp_cycle_samples);
+    v_st_rms = sqrtf(v_st_rms / (float)sampling_t.dsp_cycle_samples);
+    v_tr_rms = sqrtf(v_tr_rms / (float)sampling_t.dsp_cycle_samples);
+
+    if (v_st_rms > v_rs_rms) {
+        sel = st;
+    }
+    if (v_tr_rms > v_rs_rms && v_tr_rms > v_st_rms) {
+        sel = tr;
+    }
+
+    sampling_t.dsp_i0_rms[ch_idx] = sel.i0_rms;
+    sampling_t.dsp_i0r[ch_idx] = sel.i0r;
+    sampling_t.dsp_phase[ch_idx] = sel.phase;
+    sampling_t.leak100ms_t[(uint8_t)ch_idx].i0r = sel.i0r;
+    sampling_t.leak100ms_t[(uint8_t)ch_idx].rag = sel.phase * (float)M_PI / 180.0f;
+    sampling_t.dsp_cycle_count = 0;
+}
+
 void tsk_calc( void )
 {
 	uint8_t idx;
@@ -95,6 +172,10 @@ void tsk_calc( void )
 	Start_Capture_Synced();
   HAL_TIM_Base_Start(&htim15);  // 10uSec カウンター
   sampling_t.v0_cycle_time = 0;
+  sampling_t.dsp_cycle_count = 0;
+  sampling_t.dsp_cycle_samples = 0;
+  memset(sampling_t.dsp_v_cycle, 0, sizeof(sampling_t.dsp_v_cycle));
+  memset(sampling_t.dsp_i0_cycle, 0, sizeof(sampling_t.dsp_i0_cycle));
 
 	sampling_t.hal_status_adc[0] = HAL_OK;
   sampling_t.hal_status_adc[1] = HAL_OK;
@@ -159,6 +240,36 @@ void tsk_calc( void )
         rslt = Culc_vol( adcv ,vol);
         if(rslt == 1){
             PushVoltageStat( vol );
+        }
+
+        float v_inst = (rslt == 1) ? vol[0] : 0.0f;
+        float i0_inst = (float)pbuf->buf[QSEL_IN3_CHANNEL] * (float)Calc_GetAdcVddaScale();
+
+        if (g_setup.ac_phase_wire == PRM_PHASE_WIRE_3P3W) {
+            static float v_rs_cycle[72];
+            static float v_st_cycle[72];
+            static float i0_cycle[72];
+            static uint8_t phase3w_count = 0;
+
+            if (phase3w_count >= sampling_t.dsp_cycle_samples) {
+                phase3w_count = 0;
+            }
+
+            if (sampling_t.dsp_cycle_samples == 0) {
+                sampling_t.dsp_cycle_samples = (sampling_t.V0Hz > 55.0f && sampling_t.V0Hz < 65.0f) ? 60U : 72U;
+            }
+
+            v_rs_cycle[phase3w_count] = v_inst;
+            v_st_cycle[phase3w_count] = (rslt == 1) ? vol[1] : 0.0f;
+            i0_cycle[phase3w_count] = i0_inst;
+            phase3w_count++;
+
+            if (phase3w_count >= sampling_t.dsp_cycle_samples) {
+                PushLeakageDspSampleThreePhase3Wire(v_rs_cycle, v_st_cycle, i0_cycle, QSEL_IN3_CHANNEL);
+                phase3w_count = 0;
+            }
+        } else {
+            PushLeakageDspSample(v_inst, i0_inst, QSEL_IN3_CHANNEL);
         }
 
         rslt = Leak100ms_5060_PushSamples( &sampling_t.leak100ms_t[QSEL_IN3_CHANNEL], &pbuf->buf[QSEL_IN3_CHANNEL], 1,&f);

@@ -262,6 +262,7 @@ UI_Disp_enum ui_show_adc( void )
   return uie;
 }
 
+const char wire_name[4][8] = { "1P2W", "1P3W", "3P3W" };
 
 /// @brief display ADC values
 /// @param  void
@@ -275,7 +276,8 @@ UI_Disp_enum ui_show_z0( void )
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    sprintf((char*)lcd_str,"CH:%1d: %d",ch+1,sampling_t.leak100ms_t[ch+2].diff_ccr_value_raw);
+    sprintf((char*)lcd_str,"CH:%1d:%4s",ch+1,wire_name[setting_t.ac_phase_wire]);
+    
     ChlcdPrint( 0, 0, lcd_str );
     
     sprintf((char*)lcd_str,"Phase %5.2f degrees ",(sampling_t.leak100ms_t[ch+2].rag*180.0/M_PI));
