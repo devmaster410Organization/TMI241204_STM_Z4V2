@@ -276,7 +276,7 @@ UI_Disp_enum ui_show_z0( void )
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    sprintf((char*)lcd_str,"CH:%1d:%4s",ch+1,wire_name[setting_t.ac_phase_wire]);
+    sprintf((char*)lcd_str,"CH:%1d:%4s",ch+1,wire_name[g_setup.ac_phase_wire]);
     
     ChlcdPrint( 0, 0, lcd_str );
     

@@ -46,7 +46,7 @@ const setup_t setup_max = {
 	.rs485_bit_length = PRM_DATA_BIT_8,
 	.response_delay_ms = 100,
 	.leakage_low_cut = 100.0f,
-	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
+	.ac_phase_wire = PRM_PHASE_WIRE_3P4W,
 	.ct_type = {PRM_LEAKAGE_CT_MZ1H,PRM_LEAKAGE_CT_MZ1H,PRM_LEAKAGE_CT_MZ1H,PRM_LEAKAGE_CT_MZ1H},
 	.avarage_count = PRM_AVG_1024,
 /*
@@ -67,7 +67,7 @@ const setup_t setup_min = {
 	.rs485_bit_length = PRM_DATA_BIT_7,
 	.response_delay_ms = 0,
 	.leakage_low_cut = 0.0f,
-	.ac_phase_wire = PRM_PHASE_WIRE_3P4W,
+	.ac_phase_wire = PRM_PHASE_WIRE_1P2W,
 	.ct_type = {PRM_LEAKAGE_CT_OTG_LA21,PRM_LEAKAGE_CT_OTG_LA21,PRM_LEAKAGE_CT_OTG_LA21,PRM_LEAKAGE_CT_OTG_LA21},
 	.avarage_count = PRM_AVG_0,
 /*		

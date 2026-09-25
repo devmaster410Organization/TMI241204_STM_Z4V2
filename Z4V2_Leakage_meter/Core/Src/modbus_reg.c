@@ -58,7 +58,7 @@ void setup_update( void )
 /// @return 範囲内なら0、範囲外なら-1
 int check_parameter(uint32_t value, uint32_t min, uint32_t max)
 {
-  if( value <= min || value >= max ){
+  if( value < min || value > max ){
     return -1; // 不正な値
   }else{
     return 0; // 正常
