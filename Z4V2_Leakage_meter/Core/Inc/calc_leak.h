@@ -29,14 +29,6 @@
 #define M_PI 3.14159265358979323846f
 #endif
 
-typedef struct LeakageData_s {
-  float i0_rms;  // 零相電流実効値 (mA)
-  float i0r;     // 抵抗分漏れ電流 (mA)
-  float phase;   // 位相角 (Degree)
-} LeakageData;
-
-LeakageData CalculateLeakage(const float *v_inst, const float *i0_inst, int num_samples);
-
 typedef struct
 {
   /* ---- Config ---- */

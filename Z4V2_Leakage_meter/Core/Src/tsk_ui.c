@@ -280,11 +280,15 @@ UI_Disp_enum ui_show_z0( void )
     
     ChlcdPrint( 0, 0, lcd_str );
     
-    sprintf((char*)lcd_str,"Phase %5.2f degrees ",(sampling_t.leak100ms_t[ch+2].rag*180.0/M_PI));
+    sprintf((char*)lcd_str,"Phase %7.2f deg    ",Ior_GetPhaseDeg(ch));
     ChlcdPrint( 0, 1, lcd_str );
     sprintf((char*)lcd_str,"I0  = %6.3f mA ",GetLInstValue(ch));
     ChlcdPrint( 0, 2, lcd_str );
-    sprintf((char*)lcd_str,"I0r = %6.3f mA ", sampling_t.leak100ms_t[ch+2].i0r);
+    if( Ior_IsValid(ch) ){
+      sprintf((char*)lcd_str,"I0r = %6.3f mA ", Ior_GetI0r(ch));
+    }else{
+      sprintf((char*)lcd_str,"I0r = ---- (no V)   ");
+    }
     ChlcdPrint( 0, 3, lcd_str );
 
 

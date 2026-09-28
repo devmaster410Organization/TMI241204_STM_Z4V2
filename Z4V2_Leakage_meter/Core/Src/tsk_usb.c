@@ -29,6 +29,7 @@ static int cmd_set(  void );
 static int cmd_get(  void );
 static int cmd_status(  void );
 static int cmd_mode(  void );
+static int cmd_ior(  void );
 
 static int copy_word_to_buf( uint16_t index, char *out, size_t out_size );
 static bool parse_u32_token( const char *token, uint32_t *out );
@@ -301,6 +302,7 @@ typedef enum{
   KWD_STATUS,
   KWD_POWER,
   KWD_MON,
+  KWD_IOR,
   KWD_MAX
 } E_KEYWORD;
 
@@ -321,6 +323,7 @@ const T_KEYWORD t_command[]={
 	{KWD_POWER,"power","Drive Relay ON"},
 	{KWD_STATUS, "status", "Show Status"},
 	{KWD_MON, "mon", "Monitor Mode"},
+	{KWD_IOR, "ior", "Show I0r / Phase"},
 	{KWD_MAX, "", ""}
 };
 
@@ -811,6 +814,9 @@ static int analyze_command( char *buf )
 			case KWD_MON:
 				g_sys.monz0_count = 360;
 				break;
+			case KWD_IOR:
+				cmd_ior();
+				break;
 			default:
 				usb_puts("Unknown Command.");
 				usb_puts(buf);
@@ -941,6 +947,25 @@ static int cmd_status(  void )
 		snprintf(str,sizeof(str), "dsw:0x%02X", GetDsw());
 		usb_puts(str);
 		snprintf(str,sizeof(str), "vdda:%5.2f V", sysvdda);
+		usb_puts(str);
+	}
+	return 0;
+}
+
+
+/// @brief I0r 計算の状態表示（遅延キャリブレーション用）
+///        raw = 遅延補正前の位相。純抵抗の漏電で raw が 0° になるよう遅延を決める
+static int cmd_ior(  void )
+{
+	char str[64];
+
+	snprintf(str, sizeof(str), "f:%dHz Vdft:%.0f |V1+V2|/|V1|:%.3f win:%lu",
+		ior_t.use60 ? 60 : 50, ior_t.v_mag, ior_t.v12_ratio, (unsigned long)ior_t.win_count);
+	usb_puts(str);
+	for( int ch = 0; ch < IOR_CH_NUM; ch++ ){
+		snprintf(str, sizeof(str), "CH%d I0:%8.3f raw:%7.2f ph:%7.2f I0r:%8.3f%s",
+			ch + 1, GetLInstValue(ch), ior_t.ch[ch].phase_raw_deg, Ior_GetPhaseDeg(ch),
+			Ior_GetI0r(ch), Ior_IsValid(ch) ? "" : " (no V)");
 		usb_puts(str);
 	}
 	return 0;

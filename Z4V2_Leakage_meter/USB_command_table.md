@@ -27,6 +27,7 @@
 | `mode` | `mode` / `mode <n>` | モード表示/変更 | `mode` は現在モード表示、`0`=RUN, `1`=SETUP |
 | `status` | `status` | 状態表示 | Ver, DSW, VDDA を表示 |
 | `mon` | `mon` | モニタ要求 | `g_sys.monz0_count = 360` を設定 |
+| `ior` | `ior` | I0r 計算状態表示 | 周波数、基準電圧 DFT 振幅、`\|V1+V2\|/\|V1\|`、CH1-4 の I0 / 補正前位相(raw) / 補正後位相(ph) / I0r を表示。遅延キャリブレーション用 |
 | `power` | `power` | 予約 | 現状は無応答（何も出力しない） |
 
 - コマンド名は大文字小文字を区別（`strncmp` による完全一致）。
