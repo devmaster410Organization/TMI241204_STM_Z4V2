@@ -32,7 +32,7 @@
  *   例) 50Hz で raw = +3.6°（I0 が進んで見える）→ τ_I0 - τ_V = -200µs
  * I0 側は CT 種別ごとに calc_ior.c の ior_i0_delay_us[] に設定する。
  */
-#define IOR_V_DELAY_US   (0.0f)   // VAC1/VAC2 の入力回路遅延
+#define IOR_V_DELAY_US   (700.0f) // VAC1/VAC2 の入力回路遅延（暫定: 1P2W 50Hz で IC 方式との差 約12.6° から算出）
 
 /* 基準電圧の DFT 振幅 [count] がこれ未満なら I0r は無効（100V 入力でおよそ 28000） */
 #define IOR_V_MIN_DFT    (2000.0f)

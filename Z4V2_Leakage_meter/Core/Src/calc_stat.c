@@ -297,7 +297,7 @@ float GetLMinValue( int ch )
 /// @param  
 void ResetMinLeakValue(void)
 {
-	for(int j = 0;j<3;j++){
+	for(int j = 0;j<4;j++){
 		calc_stat_t.leak_min[j] = KE1_MAX_LEAK;
 	}
 }
@@ -306,7 +306,7 @@ void ResetMinLeakValue(void)
 /// @param  
 void ResetMaxLeakValue(void)
 {
-	for(int j = 0;j<3;j++){
+	for(int j = 0;j<4;j++){
 		calc_stat_t.leak_max[j] = KE1_MIN_LEAK;
 	}
 }

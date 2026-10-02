@@ -1,10 +1,10 @@
 ../Core/Src/tsk_ui.c:95:13:bps_string	6
-../Core/Src/tsk_ui.c:346:14:ui_show_system	3
-../Core/Src/tsk_ui.c:388:6:setup_check	3
+../Core/Src/tsk_ui.c:360:14:ui_show_system	3
+../Core/Src/tsk_ui.c:402:6:setup_check	3
 ../Core/Src/tsk_ui.c:111:14:ui_show_ver	2
 ../Core/Src/tsk_ui.c:137:14:ui_show_main	5
 ../Core/Src/tsk_ui.c:188:14:ui_show_value	3
 ../Core/Src/tsk_ui.c:229:14:ui_show_adc	3
-../Core/Src/tsk_ui.c:270:14:ui_show_z0	6
-../Core/Src/tsk_ui.c:320:14:ui_show_phase	3
+../Core/Src/tsk_ui.c:275:14:ui_show_z0	8
+../Core/Src/tsk_ui.c:334:14:ui_show_phase	3
 ../Core/Src/tsk_ui.c:46:6:tsk_ui	8

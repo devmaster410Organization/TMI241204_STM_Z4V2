@@ -264,30 +264,44 @@ UI_Disp_enum ui_show_adc( void )
 
 const char wire_name[4][8] = { "1P2W", "1P3W", "3P3W" };
 
-/// @brief display ADC values
+/// @brief 位相差と I0r をインプットキャプチャ方式(IC)と計算方式(DSP)で並べて表示する
+///        I0 は共通（GetLInstValue）。UP/DOWN で CH 切替
+///   0: CH1 1P2W I0 12.345mA
+///   1:     Ph[deg] I0r[mA]
+///   2: IC  -123.45  12.345      インプットキャプチャ（get_all_phase）
+///   3: DSP -123.45  12.345      DFT 計算（calc_ior.c）
 /// @param  void
 /// @return next UI display state
 UI_Disp_enum ui_show_z0( void )
 {
   bool done = false;
- 
+
   UI_Disp_enum uie = UI_SHOW_SYSTEM ;
   int ch = 0;
   ChlcdCls();
   KEY_clr();
   while( done == false ){
-    sprintf((char*)lcd_str,"CH:%1d:%4s",ch+1,wire_name[g_setup.ac_phase_wire]);
-    
+    sprintf((char*)lcd_str,"CH%1d %4s I0%7.3fmA",ch+1,wire_name[g_setup.ac_phase_wire],GetLInstValue(ch));
     ChlcdPrint( 0, 0, lcd_str );
-    
-    sprintf((char*)lcd_str,"Phase %7.2f deg    ",Ior_GetPhaseDeg(ch));
-    ChlcdPrint( 0, 1, lcd_str );
-    sprintf((char*)lcd_str,"I0  = %6.3f mA ",GetLInstValue(ch));
-    ChlcdPrint( 0, 2, lcd_str );
-    if( Ior_IsValid(ch) ){
-      sprintf((char*)lcd_str,"I0r = %6.3f mA ", Ior_GetI0r(ch));
+
+    ChlcdPrint( 0, 1, "    Ph[deg] I0r[mA] " );
+
+    // インプットキャプチャ方式: get_all_phase() の結果は leak100ms_t[NUM_LPHx + 1] に入っている
+    const Leak100ms_5060 *pic = &sampling_t.leak100ms_t[ch + NUM_LPH1 + 1];
+    float ic_deg = pic->rag * 180.0f / (float)M_PI;
+    if( pic->diff_ccr_value >= 0 && isfinite(ic_deg) ){
+      ic_deg = remainderf(ic_deg, 360.0f); // DSP 側と同じ ±180° に揃える
+      sprintf((char*)lcd_str,"IC  %7.2f %7.3f ", ic_deg, pic->i0r);
     }else{
-      sprintf((char*)lcd_str,"I0r = ---- (no V)   ");
+      sprintf((char*)lcd_str,"IC     ----    ---- ");  // 信号検知無し
+    }
+    ChlcdPrint( 0, 2, lcd_str );
+
+    // 計算方式: 100ms DFT
+    if( Ior_IsValid(ch) ){
+      sprintf((char*)lcd_str,"DSP %7.2f %7.3f ", Ior_GetPhaseDeg(ch), Ior_GetI0r(ch));
+    }else{
+      sprintf((char*)lcd_str,"DSP    ----  (no V) ");
     }
     ChlcdPrint( 0, 3, lcd_str );
 
